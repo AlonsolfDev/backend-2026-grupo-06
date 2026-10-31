@@ -54,7 +54,21 @@ DATABASE_URL=sqlite:///./reservas.db
 
 ## Base de datos, migraciones y seeders
 
-(Pendiente: se completa cuando esté lista la persistencia con SQLAlchemy y Alembic.)
+La base de datos usa SQLite por defecto (`sqlite:///./reservas.db`) y se configura con la variable `DATABASE_URL`. Los modelos ORM (SQLAlchemy) están en `app/infrastructure/models/` e incluyen las cuatro entidades con sus relaciones 1:N (Usuario→Reserva, Sala→Reserva, Sala→Equipamiento). El diagrama de datos está en `docs/diagrama-datos.md`.
+
+Crear las tablas desde cero:
+
+```bash
+alembic upgrade head
+```
+
+Cargar datos de ejemplo (se puede ejecutar varias veces sin duplicar registros):
+
+```bash
+python -m app.infrastructure.seeders.seed
+```
+
+Para reiniciar la base: borrar `reservas.db` y repetir los dos comandos.
 
 ## Ejecución
 
@@ -161,7 +175,7 @@ backend-2026-grupo-06/
 └── README.md
 ```
 
-**Nota:** en esta versión los datos se guardan en memoria; cada vez que se reinicia el servidor estos se pierden. Se reemplazará por una base de datos real con migraciones y seeders.
+**Nota:** los datos se guardan en una base SQLite (`reservas.db`) y se conservan al reiniciar el servidor.
 
 ## Ejecución de pruebas
 
