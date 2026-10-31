@@ -5,7 +5,6 @@ from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
-
 class RolUsuario(str, Enum):
     ADMINISTRADOR = "administrador"
     DOCENTE = "docente"
@@ -57,7 +56,22 @@ class EquipamientoCreate(BaseModel):
     nombre: str
     tipo: str
     sala_id: int
+    descripcion: str = ""
 
+
+class ReservaCreate(BaseModel):
+    usuario_id: int
+    sala_id: int
+    fecha_inicio: datetime
+    fecha_fin: datetime
+    proposito: str = Field(min_length=3, max_length=200)
+    num_asistentes: int = Field(gt=0)
+
+    @model_validator(mode="after")
+    def fecha_fin_posterior(self):
+        if self.fecha_fin <= self.fecha_inicio:
+            raise ValueError("fecha_fin debe ser posterior a fecha_inicio")
+        return self
 
 class EquipamientoOut(EquipamientoCreate):
     id: int
