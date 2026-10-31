@@ -4,8 +4,7 @@ DTOs (esquemas de entrada/salida) para las 4 entidades del dominio.
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, EmailStr, Field
-
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 class RolUsuario(str, Enum):
     ADMINISTRADOR = "administrador"
@@ -71,6 +70,11 @@ class ReservaCreate(BaseModel):
     fecha_inicio: datetime
     fecha_fin: datetime
 
+    @model_validator(mode="after")
+    def fecha_fin_posterior(self):
+        if self.fecha_fin <= self.fecha_inicio:
+            raise ValueError("fecha_fin debe ser posterior a fecha_inicio")
+        return self
 
 class ReservaOut(ReservaCreate):
     id: int
