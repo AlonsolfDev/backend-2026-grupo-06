@@ -9,9 +9,9 @@ Jefe de grupo: Alonso Lantaño.
 | Integrante | Responsabilidad principal |
 |---|---|
 | Alonso Lantaño | (por asignar) |
-| Jesús Huentemil | (por asignar) |
-| Tomás Mardones | (por asignar) |
-| Diego Vásquez | (por asignar) |
+| Jesús Huentemil | (Api y logica de negocios) |
+| Tomás Mardones | (Calidad y pruebas) |
+| Diego Vásquez | (Dominio y datos) |
 
 ## Entidades
 
