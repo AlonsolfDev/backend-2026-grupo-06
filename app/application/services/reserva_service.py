@@ -7,10 +7,10 @@ from app.domain.reglas_negocio import (
     validar_fechas_reserva,
     validar_disponibilidad_sala,
 )
-from app.repositories.reserva_repository import reserva_store
-from app.repositories.sala_repository import sala_store
-from app.repositories.usuario_repository import usuario_store
-from app.schemas.dtos import ReservaCreate
+from app.infrastructure.repositories.reserva_repository import reserva_store
+from app.infrastructure.repositories.sala_repository import sala_store
+from app.infrastructure.repositories.usuario_repository import usuario_store
+from app.presentation.schemas.dtos import ReservaCreate
 
 
 def crear_reserva(data: ReservaCreate) -> Reserva:

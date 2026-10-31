@@ -5,8 +5,8 @@ import math
 from typing import Optional, Literal
 
 from app.domain.entities import Sala, EstadoSala
-from app.repositories.sala_repository import sala_store
-from app.schemas.dtos import SalaCreate
+from app.infrastructure.repositories.sala_repository import sala_store
+from app.presentation.schemas.dtos import SalaCreate
 
 
 def crear_sala(data: SalaCreate) -> Sala:

@@ -3,8 +3,8 @@ Router de Usuario: define las URIs y delega la lógica al service.
 """
 from fastapi import APIRouter, status
 
-from app.schemas.dtos import UsuarioCreate, UsuarioOut
-from app.services import usuario_service
+from app.presentation.schemas.dtos import UsuarioCreate, UsuarioOut
+from app.application.services import usuario_service
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
