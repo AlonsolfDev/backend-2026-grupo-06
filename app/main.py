@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
-from app.routers import sala_router, usuario_router, equipamiento_router, reserva_router
+from app.presentation.routers import sala_router, usuario_router, equipamiento_router, reserva_router
 
 app = FastAPI(title="Sistema de Reservas de Salas y Laboratorios")
 

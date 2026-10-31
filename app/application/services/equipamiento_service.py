@@ -2,9 +2,9 @@
 Casos de uso de Equipamiento: lógica de negocio y coordinación con el repositorio.
 """
 from app.domain.entities import Equipamiento, EstadoEquipamiento
-from app.repositories.equipamiento_repository import equipamiento_store
-from app.repositories.sala_repository import sala_store
-from app.schemas.dtos import EquipamientoCreate
+from app.infrastructure.repositories.equipamiento_repository import equipamiento_store
+from app.infrastructure.repositories.sala_repository import sala_store
+from app.presentation.schemas.dtos import EquipamientoCreate
 
 
 def crear_equipamiento(data: EquipamientoCreate) -> Equipamiento:

@@ -6,8 +6,8 @@ from typing import Optional, Literal
 from fastapi import APIRouter, status, Query
 
 from app.domain.entities import EstadoSala
-from app.schemas.dtos import SalaCreate, SalaOut, SalaPaginada
-from app.services import sala_service
+from app.presentation.schemas.dtos import SalaCreate, SalaOut, SalaPaginada
+from app.application.services import sala_service
 
 router = APIRouter(prefix="/salas", tags=["Salas"])
 

@@ -7,8 +7,8 @@ from typing import Optional, Literal
 
 from fastapi import APIRouter, status
 
-from app.schemas.dtos import ReservaCreate, ReservaOut
-from app.services import reserva_service
+from app.presentation.schemas.dtos import ReservaCreate, ReservaOut
+from app.application.services import reserva_service
 
 router = APIRouter(prefix="/reservas", tags=["Reservas"])
 
@@ -70,4 +70,4 @@ def confirmar_reserva(reserva_id: int):
 
 @router.delete("/{reserva_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_reserva(reserva_id: int):
-    reserva_service.eliminar_reserva(reserva_id) 
+    reserva_service.eliminar_reserva(reserva_id)

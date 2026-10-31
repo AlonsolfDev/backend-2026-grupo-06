@@ -4,8 +4,8 @@ Router de Equipamiento: define las URIs y delega la lógica al service.
 from fastapi import APIRouter, status
 
 from app.domain.entities import EstadoEquipamiento
-from app.schemas.dtos import EquipamientoCreate, EquipamientoOut
-from app.services import equipamiento_service
+from app.presentation.schemas.dtos import EquipamientoCreate, EquipamientoOut
+from app.application.services import equipamiento_service
 
 router = APIRouter(prefix="/equipamientos", tags=["Equipamientos"])
 

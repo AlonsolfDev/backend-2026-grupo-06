@@ -1,32 +1,87 @@
-# Proyecto N1 Desarrollo de Backend
+# Proyecto Backend - Grupo 6 (ICINF1108)
 
 API REST para gestión de reservas de salas.
 
+## Integrantes y responsabilidades
+
+Jefe de grupo: Alonso Lantaño.
+
+| Integrante | Responsabilidad principal |
+|---|---|
+| Alonso Lantaño | (por asignar) |
+| Jesús Huentemil | (por asignar) |
+| Tomás Mardones | (por asignar) |
+| Diego Vásquez | (por asignar) |
+
 ## Entidades
+
 | Entidad | Descripción |
-|---------|-------------|
+|---|---|
 | **Sala** | Espacio disponible para ser reservado |
 | **Usuario** | Persona que realiza reservas |
 | **Reserva** | Asocia un usuario con una sala. Al crearla se valida que la sala y el usuario existan |
 | **Equipamiento** | Recursos disponibles, con un estado que puede actualizarse |
 
 ## Requisitos
-- Python 3.10 o superior
+
+- Python 3.14 (versión con la que se probó el proyecto)
 - Git
 
 ## Instalación
-1. Clonar el repositorio #usando "git clone ("AQUI VA LA URL O LINK DEL REPOSITORIO")" o poder desplazarte y clonar en un archivo especifico usando cd
-2. Crear y activar entorno virtual # python: -m venv venv # Windows: venv\Scripts\activate # Linux / Mac: source venv/bin/activate
-3. `pip install -r requirements.txt` #con esto se instalan las dependencias, que en el requirements como dice, estan lo necesario para esto.
+
+1. Clonar el repositorio:
+```bash
+git clone https://github.com/AlonsolfDev/backend-2026-grupo-06.git
+cd backend-2026-grupo-06
+```
+2. Crear y activar el entorno virtual:
+```bash
+python -m venv venv
+# Windows (PowerShell): venv\Scripts\Activate.ps1
+# Linux / Mac: source venv/bin/activate
+```
+3. Instalar las dependencias:
+```bash
+pip install -r requirements.txt
+```
+
+## Variables de entorno
+
+Copiar `.env.example` a `.env` y ajustar si es necesario:
+```
+DATABASE_URL=sqlite:///./reservas.db
+```
+
+## Base de datos, migraciones y seeders
+
+(Pendiente: se completa cuando esté lista la persistencia con SQLAlchemy y Alembic.)
 
 ## Ejecución
-ya con un entorno virtual 
-`uvicorn app.main:app --reload`
-el servidor quedara disponible en http://127.0.0.1:8000 
+
+```bash
+uvicorn app.main:app --reload
+```
+El servidor queda disponible en http://127.0.0.1:8000
 
 Documentación Swagger: http://127.0.0.1:8000/docs
 
+## Arquitectura por capas
+
+| Capa | Carpeta | Función |
+|---|---|---|
+| Presentación | `app/presentation/` | Routers HTTP y DTOs (schemas) |
+| Aplicación | `app/application/services/` | Casos de uso y coordinación |
+| Dominio | `app/domain/` | Entidades y reglas de negocio |
+| Infraestructura | `app/infrastructure/` | Repositorios y acceso a datos |
+
+`app/main.py` crea y ensambla la aplicación. La lógica de negocio no vive en los routers.
+
+## Recorrido de una solicitud
+
+(Pendiente: diagrama router → servicio → repositorio → base de datos.)
+
 ## Endpoints principales
+
 ### Salas
 
 | Método | Ruta | Descripción |
@@ -68,43 +123,46 @@ Documentación Swagger: http://127.0.0.1:8000/docs
 ## Estructura del proyecto
 
 ```
-Proyecto-N-1-Backend/
+backend-2026-grupo-06/
 ├── app/
-│   ├── main.py                    # Punto de entrada de la aplicación FastAPI
-│   ├── domain/                    
-│   │   ├── entities.py            # Entidades: Sala, Usuario, Reserva, Equipamiento
-│   │   └── reglas_negocio.py      # Reglas de negocio del dominio
-│   ├── repositories/              # Acceso a datos (una clase por entidad)
-│   │   ├── sala_repository.py
-│   │   ├── usuario_repository.py
-│   │   ├── reserva_repository.py
-│   │   └── equipamiento_repository.py
-│   ├── services/                  # Lógica de negocio (una por entidad)
-│   │   ├── sala_service.py
-│   │   ├── usuario_service.py
-│   │   ├── reserva_service.py     # Valida que existan Sala y Usuario
-│   │   └── equipamiento_service.py
-│   ├── routers/                   # Endpoints de la API
-│   │   ├── sala_router.py
-│   │   ├── usuario_router.py
-│   │   ├── reserva_router.py
-│   │   └── equipamiento_router.py
-│   ├── schemas/
-│   │   └── dtos.py                # Modelos Pydantic de entrada y salida
-│   ├── shared/
-│   │   └── in_memory_store.py     # Almacenamiento en memoria
-│   └── tests_manual/              # Pruebas manuales de los endpoints (.http)
-│       ├── pruebas_sala.http
-│       ├── pruebas_usuario.http
-│       ├── pruebas_reserva.http
-│       └── pruebas_equipamiento.http
-├── requirements.txt               # Dependencias del proyecto
+│   ├── main.py                      # Punto de entrada de la aplicación FastAPI
+│   ├── presentation/
+│   │   ├── routers/                 # Endpoints de la API
+│   │   │   ├── sala_router.py
+│   │   │   ├── usuario_router.py
+│   │   │   ├── reserva_router.py
+│   │   │   └── equipamiento_router.py
+│   │   └── schemas/
+│   │       └── dtos.py              # Modelos Pydantic de entrada y salida
+│   ├── application/
+│   │   └── services/                # Lógica de negocio (una por entidad)
+│   │       ├── sala_service.py
+│   │       ├── usuario_service.py
+│   │       ├── reserva_service.py   # Valida que existan Sala y Usuario
+│   │       └── equipamiento_service.py
+│   ├── domain/
+│   │   ├── entities.py              # Entidades: Sala, Usuario, Reserva, Equipamiento
+│   │   └── reglas_negocio.py        # Reglas de negocio del dominio
+│   ├── infrastructure/
+│   │   └── repositories/            # Acceso a datos (una clase por entidad)
+│   │       ├── sala_repository.py
+│   │       ├── usuario_repository.py
+│   │       ├── reserva_repository.py
+│   │       └── equipamiento_repository.py
+│   └── shared/
+│       └── in_memory_store.py       # Almacenamiento en memoria (se reemplaza por la BD)
+├── tests_manual/                    # Pruebas manuales de los endpoints (.http)
+│   ├── pruebas_sala.http
+│   ├── pruebas_usuario.http
+│   ├── pruebas_reserva.http
+│   └── pruebas_equipamiento.http
+├── .env.example                     # Variables de entorno de ejemplo
+├── requirements.txt                 # Dependencias del proyecto
 └── README.md
 ```
-**Nota:** los datos se guardan en memoria; cada vez que se reinicia el servidor estos se pierden.
 
-## Equipo
--Tomás Mardones: Lider de grupo y documentacion e integracion.
--Jesus huencumil: API e Logica de negocio y Calidad e Pruebas.
--Alonso Lantaño: Dominio y Datos.
--Diego Vasquez: Calidad y Pruebas.
+**Nota:** en esta versión los datos se guardan en memoria; cada vez que se reinicia el servidor estos se pierden. Se reemplazará por una base de datos real con migraciones y seeders.
+
+## Ejecución de pruebas
+
+Los casos están en `tests_manual/` (archivos `.http`). (Pendiente: procedimiento de ejecución y evidencias con resultado esperado y obtenido.)

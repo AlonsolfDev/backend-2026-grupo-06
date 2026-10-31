@@ -2,8 +2,8 @@
 Casos de uso de Usuario: lógica de negocio y coordinación con el repositorio.
 """
 from app.domain.entities import Usuario
-from app.repositories.usuario_repository import usuario_store
-from app.schemas.dtos import UsuarioCreate
+from app.infrastructure.repositories.usuario_repository import usuario_store
+from app.presentation.schemas.dtos import UsuarioCreate
 
 
 def crear_usuario(data: UsuarioCreate) -> Usuario:
