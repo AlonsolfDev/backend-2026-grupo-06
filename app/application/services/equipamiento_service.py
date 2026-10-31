@@ -1,45 +1,46 @@
 """
 Casos de uso de Equipamiento: lógica de negocio y coordinación con el repositorio.
 """
+from dataclasses import replace
+
+from sqlalchemy.orm import Session
+
 from app.domain.entities import Equipamiento, EstadoEquipamiento
-from app.infrastructure.repositories.equipamiento_repository import equipamiento_store
-from app.infrastructure.repositories.sala_repository import sala_store
+from app.infrastructure.repositories.equipamiento_repository import EquipamientoRepository
+from app.infrastructure.repositories.sala_repository import SalaRepository
 from app.presentation.schemas.dtos import EquipamientoCreate
 
 
-def crear_equipamiento(data: EquipamientoCreate) -> Equipamiento:
-    if sala_store.get(data.sala_id) is None:
+def crear_equipamiento(db: Session, data: EquipamientoCreate) -> Equipamiento:
+    # Validación de existencia relacionada: la sala debe existir
+    if SalaRepository(db).obtener_por_id(data.sala_id) is None:
         raise ValueError(f"No existe una sala con ID {data.sala_id}.")
-    return equipamiento_store.add(
-        lambda nuevo_id: Equipamiento(
-            id=nuevo_id,
-            nombre=data.nombre,
-            tipo=data.tipo,
-            estado=EstadoEquipamiento.DISPONIBLE,
-            sala_id=data.sala_id,
-        )
+
+    nuevo = Equipamiento(
+        id=0,  # el repositorio asigna el ID real
+        nombre=data.nombre,
+        tipo=data.tipo,
+        estado=EstadoEquipamiento.DISPONIBLE,
+        sala_id=data.sala_id,
+        descripcion=data.descripcion,
     )
+    return EquipamientoRepository(db).crear(nuevo)
 
 
-def listar_equipamientos() -> list[Equipamiento]:
-    return equipamiento_store.list_all()
+def listar_equipamientos(db: Session) -> list[Equipamiento]:
+    return EquipamientoRepository(db).listar()
 
 
-def obtener_equipamiento(equipamiento_id: int) -> Equipamiento:
-    equipamiento = equipamiento_store.get(equipamiento_id)
+def obtener_equipamiento(db: Session, equipamiento_id: int) -> Equipamiento:
+    equipamiento = EquipamientoRepository(db).obtener_por_id(equipamiento_id)
     if equipamiento is None:
         raise ValueError(f"No existe un equipamiento con ID {equipamiento_id}.")
     return equipamiento
 
 
-def actualizar_estado_equipamiento(equipamiento_id: int, nuevo_estado: EstadoEquipamiento) -> Equipamiento:
-    equipamiento = obtener_equipamiento(equipamiento_id)
-    equipamiento_actualizado = Equipamiento(
-        id=equipamiento.id,
-        nombre=equipamiento.nombre,
-        tipo=equipamiento.tipo,
-        estado=nuevo_estado,
-        sala_id=equipamiento.sala_id,
-    )
-    equipamiento_store.update(equipamiento_id, equipamiento_actualizado)
-    return equipamiento_actualizado
+def actualizar_estado_equipamiento(
+    db: Session, equipamiento_id: int, nuevo_estado: EstadoEquipamiento
+) -> Equipamiento:
+    equipamiento = obtener_equipamiento(db, equipamiento_id)
+    actualizado = replace(equipamiento, estado=nuevo_estado)
+    return EquipamientoRepository(db).actualizar(actualizado)
