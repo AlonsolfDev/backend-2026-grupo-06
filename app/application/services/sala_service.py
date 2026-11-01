@@ -8,6 +8,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.domain.entities import Sala, EstadoSala
+from app.domain.errores import RecursoNoEncontrado
 from app.infrastructure.repositories.sala_repository import SalaRepository
 from app.presentation.schemas.dtos import SalaCreate
 
@@ -58,7 +59,7 @@ def listar_salas(
 def obtener_sala(db: Session, sala_id: int) -> Sala:
     sala = SalaRepository(db).obtener_por_id(sala_id)
     if sala is None:
-        raise ValueError(f"No existe una sala con ID {sala_id}.")
+        raise RecursoNoEncontrado(f"No existe una sala con ID {sala_id}.")
     return sala
 
 
@@ -75,5 +76,5 @@ def actualizar_sala(db: Session, sala_id: int, data: SalaCreate) -> Sala:
 
 
 def eliminar_sala(db: Session, sala_id: int) -> None:
-    obtener_sala(db, sala_id)  # lanza ValueError si no existe
+    obtener_sala(db, sala_id)  # lanza RecursoNoEncontrado si no existe
     SalaRepository(db).eliminar(sala_id)
