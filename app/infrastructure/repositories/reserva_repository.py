@@ -1,3 +1,4 @@
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session
 
 from app.domain.entities import Reserva
@@ -11,6 +12,31 @@ class ReservaRepository:
 
     def listar(self) -> list[Reserva]:
         return [reserva_a_dominio(m) for m in self.db.query(ReservaModel).all()]
+
+    def listar_paginado(
+        self,
+        sala_id: int | None,
+        ordenar_por: str,
+        direccion: str,
+        pagina: int,
+        limite: int,
+    ) -> tuple[list[Reserva], int]:
+        """Filtra, ordena y pagina en la base de datos. Devuelve (items, total)."""
+        consulta = select(ReservaModel)
+        if sala_id is not None:
+            consulta = consulta.where(ReservaModel.sala_id == sala_id)
+
+        # el total se calcula sobre los registros ya filtrados
+        total = self.db.scalar(
+            select(func.count()).select_from(consulta.subquery())
+        ) or 0
+
+        columna = getattr(ReservaModel, ordenar_por)
+        orden = desc(columna) if direccion == "desc" else asc(columna)
+        consulta = consulta.order_by(orden).limit(limite).offset((pagina - 1) * limite)
+
+        modelos = self.db.scalars(consulta).all()
+        return [reserva_a_dominio(m) for m in modelos], total
 
     def listar_por_sala(self, sala_id: int) -> list[Reserva]:
         modelos = self.db.query(ReservaModel).filter_by(sala_id=sala_id).all()

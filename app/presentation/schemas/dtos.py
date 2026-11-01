@@ -100,4 +100,12 @@ class SalaPaginada(BaseModel):
     limite: int
     total_paginas: int
 
+
     
+
+class ReservaPaginada(BaseModel):
+    items: list[ReservaOut]
+    total: int
+    pagina: int
+    limite: int
+    total_paginas: int

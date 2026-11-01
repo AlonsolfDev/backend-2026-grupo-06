@@ -6,6 +6,7 @@ from dataclasses import replace
 from sqlalchemy.orm import Session
 
 from app.domain.entities import Equipamiento, EstadoEquipamiento
+from app.domain.errores import RecursoNoEncontrado
 from app.infrastructure.repositories.equipamiento_repository import EquipamientoRepository
 from app.infrastructure.repositories.sala_repository import SalaRepository
 from app.presentation.schemas.dtos import EquipamientoCreate
@@ -14,7 +15,7 @@ from app.presentation.schemas.dtos import EquipamientoCreate
 def crear_equipamiento(db: Session, data: EquipamientoCreate) -> Equipamiento:
     # Validación de existencia relacionada: la sala debe existir
     if SalaRepository(db).obtener_por_id(data.sala_id) is None:
-        raise ValueError(f"No existe una sala con ID {data.sala_id}.")
+        raise RecursoNoEncontrado(f"No existe una sala con ID {data.sala_id}.")
 
     nuevo = Equipamiento(
         id=0,  # el repositorio asigna el ID real
@@ -34,7 +35,7 @@ def listar_equipamientos(db: Session) -> list[Equipamiento]:
 def obtener_equipamiento(db: Session, equipamiento_id: int) -> Equipamiento:
     equipamiento = EquipamientoRepository(db).obtener_por_id(equipamiento_id)
     if equipamiento is None:
-        raise ValueError(f"No existe un equipamiento con ID {equipamiento_id}.")
+        raise RecursoNoEncontrado(f"No existe un equipamiento con ID {equipamiento_id}.")
     return equipamiento
 
 

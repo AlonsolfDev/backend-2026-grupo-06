@@ -8,6 +8,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.domain.entities import Sala, EstadoSala
+from app.domain.errores import RecursoNoEncontrado
 from app.infrastructure.repositories.sala_repository import SalaRepository
 from app.presentation.schemas.dtos import SalaCreate
 
@@ -31,20 +32,11 @@ def listar_salas(
     pagina: int = 1,
     limite: int = 20,
 ) -> dict:
-    # Orden obligatorio: primero filtrar, después ordenar y finalmente paginar
-    salas = SalaRepository(db).listar()
-
-    if estado is not None:
-        salas = [s for s in salas if s.estado == estado]
-
-    reverse = direccion == "desc"
-    salas = sorted(salas, key=lambda s: getattr(s, ordenar_por), reverse=reverse)
-
-    total = len(salas)
-    inicio = (pagina - 1) * limite
-    fin = inicio + limite
-    items = salas[inicio:fin]
-    total_paginas = math.ceil(total / limite) if limite > 0 else 0
+    # El repositorio filtra, ordena y pagina en la base de datos (en ese orden)
+    items, total = SalaRepository(db).listar_paginado(
+        estado, ordenar_por, direccion, pagina, limite
+    )
+    total_paginas = math.ceil(total / limite) if total > 0 else 0
 
     return {
         "items": items,
@@ -58,7 +50,7 @@ def listar_salas(
 def obtener_sala(db: Session, sala_id: int) -> Sala:
     sala = SalaRepository(db).obtener_por_id(sala_id)
     if sala is None:
-        raise ValueError(f"No existe una sala con ID {sala_id}.")
+        raise RecursoNoEncontrado(f"No existe una sala con ID {sala_id}.")
     return sala
 
 
@@ -75,5 +67,5 @@ def actualizar_sala(db: Session, sala_id: int, data: SalaCreate) -> Sala:
 
 
 def eliminar_sala(db: Session, sala_id: int) -> None:
-    obtener_sala(db, sala_id)  # lanza ValueError si no existe
+    obtener_sala(db, sala_id)  # lanza RecursoNoEncontrado si no existe
     SalaRepository(db).eliminar(sala_id)

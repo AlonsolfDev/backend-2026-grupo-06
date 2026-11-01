@@ -4,6 +4,7 @@ Casos de uso de Usuario: lógica de negocio y coordinación con el repositorio.
 from sqlalchemy.orm import Session
 
 from app.domain.entities import Usuario
+from app.domain.errores import RecursoNoEncontrado
 from app.infrastructure.repositories.usuario_repository import UsuarioRepository
 from app.presentation.schemas.dtos import UsuarioCreate
 
@@ -26,5 +27,5 @@ def listar_usuarios(db: Session) -> list[Usuario]:
 def obtener_usuario(db: Session, usuario_id: int) -> Usuario:
     usuario = UsuarioRepository(db).obtener_por_id(usuario_id)
     if usuario is None:
-        raise ValueError(f"No existe un usuario con ID {usuario_id}.")
+        raise RecursoNoEncontrado(f"No existe un usuario con ID {usuario_id}.")
     return usuario

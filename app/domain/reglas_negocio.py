@@ -9,12 +9,13 @@ from datetime import datetime
 from typing import Iterable
 
 from .entities import Equipamiento, EstadoEquipamiento, EstadoReserva, Reserva
+from .errores import ConflictoError, ReglaNegocioError
 
 
 def validar_fechas_reserva(fecha_inicio: datetime, fecha_fin: datetime) -> None:
     """Regla de negocio 1: una reserva no puede finalizar antes de comenzar."""
     if fecha_fin <= fecha_inicio:
-        raise ValueError(
+        raise ReglaNegocioError(
             "La fecha de término no puede ser anterior o igual a la de inicio."
         )
 
@@ -34,13 +35,13 @@ def validar_disponibilidad_sala(
             continue
         se_solapan = fecha_inicio < reserva.fecha_fin and fecha_fin > reserva.fecha_inicio
         if se_solapan:
-            raise ValueError("La sala ya tiene una reserva confirmada en ese horario.")
+            raise ConflictoError("La sala ya tiene una reserva confirmada en ese horario.")
 
 
 def validar_equipamiento_disponible(equipos: Iterable[Equipamiento]) -> None:
     """Regla de negocio 3: no se puede asociar equipamiento dañado a una reserva."""
     for equipo in equipos:
         if equipo.estado == EstadoEquipamiento.DANADO:
-            raise ValueError(
+            raise ReglaNegocioError(
                 f"El equipamiento '{equipo.nombre}' está dañado y no puede reservarse."
             )
