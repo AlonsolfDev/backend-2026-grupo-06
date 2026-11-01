@@ -2,14 +2,13 @@
 Router de Reserva: define las URIs, incluyendo CRUD completo y el
 listado con filtrado + ordenamiento + paginación.
 """
-import math
 from typing import Optional, Literal
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.presentation.dependencies import get_db
-from app.presentation.schemas.dtos import ReservaCreate, ReservaOut
+from app.presentation.schemas.dtos import ReservaCreate, ReservaOut, ReservaPaginada
 from app.application.services import reserva_service
 
 router = APIRouter(prefix="/reservas", tags=["Reservas"])
@@ -20,40 +19,18 @@ def crear_reserva(data: ReservaCreate, db: Session = Depends(get_db)):
     return reserva_service.crear_reserva(db, data)
 
 
-@router.get("")
+@router.get("", response_model=ReservaPaginada)
 def listar_reservas(
-    sala_id: Optional[int] = None,
-    ordenar_por: Literal["fecha_inicio", "fecha_fin"] = "fecha_inicio",
-    direccion: Literal["asc", "desc"] = "asc",
-    pagina: int = 1,
-    limite: int = 20,
+    sala_id: Optional[int] = Query(None, description="Filtra por sala"),
+    ordenar_por: Literal["id", "fecha_inicio", "fecha_fin", "estado"] = Query("fecha_inicio"),
+    direccion: Literal["asc", "desc"] = Query("asc"),
+    pagina: int = Query(1, ge=1),
+    limite: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    # 1. Filtrado
-    reservas = reserva_service.listar_reservas(db)
-    if sala_id is not None:
-        reservas = [r for r in reservas if r.sala_id == sala_id]
-
-    # 2. Ordenamiento
-    reservas.sort(
-        key=lambda r: getattr(r, ordenar_por),
-        reverse=(direccion == "desc"),
+    return reserva_service.listar_reservas_paginado(
+        db, sala_id, ordenar_por, direccion, pagina, limite
     )
-
-    # 3. Paginación
-    total = len(reservas)
-    total_paginas = math.ceil(total / limite) if total > 0 else 0
-    inicio = (pagina - 1) * limite
-    fin = inicio + limite
-    items = reservas[inicio:fin]
-
-    return {
-        "items": [ReservaOut.model_validate(r, from_attributes=True) for r in items],
-        "total": total,
-        "pagina": pagina,
-        "limite": limite,
-        "total_paginas": total_paginas,
-    }
 
 
 @router.get("/{reserva_id}", response_model=ReservaOut)
