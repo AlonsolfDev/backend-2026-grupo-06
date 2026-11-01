@@ -5,8 +5,10 @@ listado con filtrado + ordenamiento + paginación.
 import math
 from typing import Optional, Literal
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
 
+from app.presentation.dependencies import get_db
 from app.presentation.schemas.dtos import ReservaCreate, ReservaOut
 from app.application.services import reserva_service
 
@@ -14,8 +16,8 @@ router = APIRouter(prefix="/reservas", tags=["Reservas"])
 
 
 @router.post("", response_model=ReservaOut, status_code=status.HTTP_201_CREATED)
-def crear_reserva(data: ReservaCreate):
-    return reserva_service.crear_reserva(data)
+def crear_reserva(data: ReservaCreate, db: Session = Depends(get_db)):
+    return reserva_service.crear_reserva(db, data)
 
 
 @router.get("")
@@ -25,9 +27,10 @@ def listar_reservas(
     direccion: Literal["asc", "desc"] = "asc",
     pagina: int = 1,
     limite: int = 20,
+    db: Session = Depends(get_db),
 ):
     # 1. Filtrado
-    reservas = reserva_service.listar_reservas()
+    reservas = reserva_service.listar_reservas(db)
     if sala_id is not None:
         reservas = [r for r in reservas if r.sala_id == sala_id]
 
@@ -54,20 +57,20 @@ def listar_reservas(
 
 
 @router.get("/{reserva_id}", response_model=ReservaOut)
-def obtener_reserva(reserva_id: int):
-    return reserva_service.obtener_reserva(reserva_id)
+def obtener_reserva(reserva_id: int, db: Session = Depends(get_db)):
+    return reserva_service.obtener_reserva(db, reserva_id)
 
 
 @router.put("/{reserva_id}", response_model=ReservaOut)
-def actualizar_reserva(reserva_id: int, data: ReservaCreate):
-    return reserva_service.actualizar_reserva(reserva_id, data)
+def actualizar_reserva(reserva_id: int, data: ReservaCreate, db: Session = Depends(get_db)):
+    return reserva_service.actualizar_reserva(db, reserva_id, data)
 
 
 @router.patch("/{reserva_id}/confirmar", response_model=ReservaOut)
-def confirmar_reserva(reserva_id: int):
-    return reserva_service.confirmar_reserva(reserva_id)
+def confirmar_reserva(reserva_id: int, db: Session = Depends(get_db)):
+    return reserva_service.confirmar_reserva(db, reserva_id)
 
 
 @router.delete("/{reserva_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_reserva(reserva_id: int):
-    reserva_service.eliminar_reserva(reserva_id)
+def eliminar_reserva(reserva_id: int, db: Session = Depends(get_db)):
+    reserva_service.eliminar_reserva(db, reserva_id)
