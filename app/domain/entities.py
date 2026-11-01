@@ -69,3 +69,5 @@ class Reserva:
     fecha_inicio: datetime
     fecha_fin: datetime
     estado: EstadoReserva = EstadoReserva.PENDIENTE
+    proposito: str = ""
+    num_asistentes: int = 1

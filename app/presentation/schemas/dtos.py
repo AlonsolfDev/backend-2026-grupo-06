@@ -83,13 +83,15 @@ class ReservaCreate(BaseModel):
     sala_id: int
     fecha_inicio: datetime
     fecha_fin: datetime
+    proposito: str = Field(min_length=3, max_length=200)
+    num_asistentes: int = Field(gt=0)
 
     @model_validator(mode="after")
     def fecha_fin_posterior(self):
         if self.fecha_fin <= self.fecha_inicio:
             raise ValueError("fecha_fin debe ser posterior a fecha_inicio")
         return self
-
+    
 class ReservaOut(ReservaCreate):
     id: int
     estado: EstadoReserva
