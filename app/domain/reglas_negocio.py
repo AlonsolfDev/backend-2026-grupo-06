@@ -28,6 +28,10 @@ def validar_disponibilidad_sala(
 ) -> None:
     """Regla de negocio 2: no se puede reservar una sala que ya tiene otra
     reserva confirmada que se solape en el mismo horario."""
+    # Las fechas del request llegan con zona horaria (UTC) y las de la BD no.
+    fecha_inicio = fecha_inicio.replace(tzinfo=None)
+    fecha_fin = fecha_fin.replace(tzinfo=None)
+
     for reserva in reservas_existentes:
         if reserva.sala_id != sala_id:
             continue
