@@ -2,6 +2,7 @@
 Casos de uso de Reserva: lógica de negocio, validaciones y coordinación
 con el repositorio.
 """
+import math
 from dataclasses import replace
 
 from sqlalchemy.orm import Session
@@ -49,6 +50,29 @@ def crear_reserva(db: Session, data: ReservaCreate) -> Reserva:
 
 def listar_reservas(db: Session) -> list[Reserva]:
     return ReservaRepository(db).listar()
+
+
+def listar_reservas_paginado(
+    db: Session,
+    sala_id: int | None = None,
+    ordenar_por: str = "fecha_inicio",
+    direccion: str = "asc",
+    pagina: int = 1,
+    limite: int = 20,
+) -> dict:
+    # El repositorio filtra, ordena y pagina en la base de datos (en ese orden)
+    items, total = ReservaRepository(db).listar_paginado(
+        sala_id, ordenar_por, direccion, pagina, limite
+    )
+    total_paginas = math.ceil(total / limite) if total > 0 else 0
+
+    return {
+        "items": items,
+        "total": total,
+        "pagina": pagina,
+        "limite": limite,
+        "total_paginas": total_paginas,
+    }
 
 
 def obtener_reserva(db: Session, reserva_id: int) -> Reserva:
