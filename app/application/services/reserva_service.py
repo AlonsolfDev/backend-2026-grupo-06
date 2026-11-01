@@ -7,6 +7,7 @@ from dataclasses import replace
 from sqlalchemy.orm import Session
 
 from app.domain.entities import Reserva, EstadoReserva
+from app.domain.errores import RecursoNoEncontrado
 from app.domain.reglas_negocio import (
     validar_fechas_reserva,
     validar_disponibilidad_sala,
@@ -19,9 +20,9 @@ from app.presentation.schemas.dtos import ReservaCreate
 
 def _validar_existencia_relacionada(db: Session, usuario_id: int, sala_id: int) -> None:
     if UsuarioRepository(db).obtener_por_id(usuario_id) is None:
-        raise ValueError(f"No existe un usuario con ID {usuario_id}.")
+        raise RecursoNoEncontrado(f"No existe un usuario con ID {usuario_id}.")
     if SalaRepository(db).obtener_por_id(sala_id) is None:
-        raise ValueError(f"No existe una sala con ID {sala_id}.")
+        raise RecursoNoEncontrado(f"No existe una sala con ID {sala_id}.")
 
 
 def crear_reserva(db: Session, data: ReservaCreate) -> Reserva:
@@ -53,7 +54,7 @@ def listar_reservas(db: Session) -> list[Reserva]:
 def obtener_reserva(db: Session, reserva_id: int) -> Reserva:
     reserva = ReservaRepository(db).obtener_por_id(reserva_id)
     if reserva is None:
-        raise ValueError(f"No existe una reserva con ID {reserva_id}.")
+        raise RecursoNoEncontrado(f"No existe una reserva con ID {reserva_id}.")
     return reserva
 
 
@@ -93,5 +94,5 @@ def confirmar_reserva(db: Session, reserva_id: int) -> Reserva:
 
 
 def eliminar_reserva(db: Session, reserva_id: int) -> None:
-    obtener_reserva(db, reserva_id)  # lanza error si no existe
+    obtener_reserva(db, reserva_id)  # lanza RecursoNoEncontrado si no existe
     ReservaRepository(db).eliminar(reserva_id)
