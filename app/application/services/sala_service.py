@@ -32,20 +32,11 @@ def listar_salas(
     pagina: int = 1,
     limite: int = 20,
 ) -> dict:
-    # Orden obligatorio: primero filtrar, después ordenar y finalmente paginar
-    salas = SalaRepository(db).listar()
-
-    if estado is not None:
-        salas = [s for s in salas if s.estado == estado]
-
-    reverse = direccion == "desc"
-    salas = sorted(salas, key=lambda s: getattr(s, ordenar_por), reverse=reverse)
-
-    total = len(salas)
-    inicio = (pagina - 1) * limite
-    fin = inicio + limite
-    items = salas[inicio:fin]
-    total_paginas = math.ceil(total / limite) if limite > 0 else 0
+    # El repositorio filtra, ordena y pagina en la base de datos (en ese orden)
+    items, total = SalaRepository(db).listar_paginado(
+        estado, ordenar_por, direccion, pagina, limite
+    )
+    total_paginas = math.ceil(total / limite) if total > 0 else 0
 
     return {
         "items": items,
