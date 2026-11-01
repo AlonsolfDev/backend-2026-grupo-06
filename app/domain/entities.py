@@ -58,6 +58,7 @@ class Equipamiento:
     tipo: str
     estado: EstadoEquipamiento
     sala_id: int  # relación N:1 hacia Sala (Sala 1:N Equipamiento)
+    descripcion: str = ""
 
 
 @dataclass
