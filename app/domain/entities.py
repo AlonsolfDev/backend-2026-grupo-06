@@ -58,7 +58,6 @@ class Equipamiento:
     tipo: str
     estado: EstadoEquipamiento
     sala_id: int  # relación N:1 hacia Sala (Sala 1:N Equipamiento)
-    descripcion: str = ""
 
 
 @dataclass
@@ -69,5 +68,3 @@ class Reserva:
     fecha_inicio: datetime
     fecha_fin: datetime
     estado: EstadoReserva = EstadoReserva.PENDIENTE
-    proposito: str = ""
-    num_asistentes: int = 1
