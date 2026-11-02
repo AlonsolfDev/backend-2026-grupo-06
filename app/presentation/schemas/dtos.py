@@ -161,31 +161,6 @@ class EquipamientoOut(EquipamientoCreate):
     )
 
 
-class ReservaCreate(BaseModel):
-    usuario_id: int
-    sala_id: int
-    fecha_inicio: datetime
-    fecha_fin: datetime
-
-    @model_validator(mode="after")
-    def fecha_fin_posterior(self):
-        if self.fecha_fin <= self.fecha_inicio:
-            raise ValueError("fecha_fin debe ser posterior a fecha_inicio")
-        return self
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "usuario_id": 1,
-                    "sala_id": 1,
-                    "fecha_inicio": "2026-11-12T10:00:00",
-                    "fecha_fin": "2026-11-12T12:00:00",
-                }
-            ]
-        }
-    )
-
 
 class ReservaOut(ReservaCreate):
     id: int
