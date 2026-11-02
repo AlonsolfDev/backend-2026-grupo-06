@@ -6,12 +6,13 @@ API REST para gestión de reservas de salas.
 
 Jefe de grupo: Alonso Lantaño.
 
-| Integrante | Responsabilidad principal |
-|---|---|
-| Alonso Lantaño | (por asignar) |
-| Jesús Huentemil | (por asignar) |
-| Tomás Mardones | (por asignar) |
-| Diego Vásquez | (por asignar) |
+## Integrantes y Responsabilidades
+| Integrante | Área de Responsabilidad | Trabajo realizado |
+| --- | --- | --- |
+| Alonso Lantaño | Coordinación + Documentación e Integración | Liderazgo, integración Git, README, contratos OpenAPI y docs |
+| Diego Vásquez | Dominio y Datos | Modelos ORM, SQLite, migraciones Alembic y seeders |
+| Jesús Huentemil | API y Lógica de Negocio | Routers FastAPI, servicios, excepciones y paginación |
+| Tomás Mardones | Calidad y Pruebas | Matriz de pruebas, capturas de evidencias e informe |
 
 ## Entidades
 
@@ -92,7 +93,29 @@ Documentación Swagger: http://127.0.0.1:8000/docs
 
 ## Recorrido de una solicitud
 
-(Pendiente: diagrama router → servicio → repositorio → base de datos.)
+El flujo técnico de una petición (por ejemplo, al registrar una reserva en `POST /reservas`) recorre las capas en la siguiente secuencia:
+
+[ Cliente / Swagger UI ]
+       │
+       ▼ (1) Envío de JSON con datos
+┌──────────────────────────────────────────────┐
+│  Presentation (app/presentation/routers/)    │  <-- Valida formato con Pydantic (ReservaCreate DTO)
+└──────────────────────┬───────────────────────┘
+                       │
+                       ▼ (2) Evaluación de lógica
+┌──────────────────────────────────────────────┐
+│  Application (app/application/services/)     │  <-- Aplica reglas (fechas válidas y disponib. de sala)
+└──────────────────────┬───────────────────────┘
+                       │
+                       ▼ (3) Mapeo y persistencia
+┌──────────────────────────────────────────────┐
+│  Infrastructure (app/infrastructure/repos/)  │  <-- Traduce entidad a ORM SQLAlchemy (ReservaModel)
+└──────────────────────┬───────────────────────┘
+                       │
+                       ▼ (4) Transacción SQL
+┌──────────────────────────────────────────────┐
+│  Base de Datos (reservas.db - SQLite)        │  <-- Guarda el registro persistente en disco
+└──────────────────────────────────────────────┘
 
 ## Endpoints principales
 
@@ -179,4 +202,19 @@ backend-2026-grupo-06/
 
 ## Ejecución de pruebas
 
-Los casos están en `tests_manual/` (archivos `.http`). (Pendiente: procedimiento de ejecución y evidencias con resultado esperado y obtenido.)
+Para reproducir la batería de pruebas y verificar el comportamiento de la API:
+
+1. **Pruebas mediante archivos `.http` (REST Client):**
+   - En VS Code, instala la extensión **REST Client**.
+   - Abre la carpeta `tests_manual/` y ejecuta los archivos de solicitudes:
+     - `pruebas_usuario.http`: Creación (201), duplicados (409) y no encontrado (404).
+     - `pruebas_sala.http`: CRUD de salas y consultas con filtro/paginación (200).
+     - `pruebas_equipamiento.http`: Cambio de estado de equipamiento (200).
+     - `pruebas_reserva.http`: Creación, confirmación (200) y solapamiento de horario (409).
+
+2. **Informe de evidencias de Calidad y Pruebas:**
+   - La matriz detallada con los casos de prueba, resultados esperados vs. obtenidos y capturas de pantalla de evidencias se encuentra documentada en `tests_manual/informe_pruebas.md`.
+   - Las imágenes asociadas a las evidencias se almacenan en la carpeta `tests_manual/capturas/`.
+
+3. **Verificación de Persistencia tras Reinicio:**
+   - Se incluye el script `tests_manual/verificar_persistencia.py` para comprobar que las modificaciones permanecen guardadas en la base de datos `reservas.db` tras reiniciar el proceso de Uvicorn.
