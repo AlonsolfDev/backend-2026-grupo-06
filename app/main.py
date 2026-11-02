@@ -10,7 +10,15 @@ from fastapi.exceptions import RequestValidationError
 from app.domain.errores import ConflictoError, RecursoNoEncontrado, ReglaNegocioError
 from app.presentation.routers import sala_router, usuario_router, equipamiento_router, reserva_router
 
-app = FastAPI(title="Sistema de Reservas de Salas y Laboratorios")
+app = FastAPI(
+    title="Sistema de Reservas de Salas y Laboratorios",
+    description=(
+        "API REST para gestionar usuarios, salas, equipamiento y reservas. "
+        "Incluye filtro, orden y paginación en las listas, y errores con formato "
+        "uniforme: {\"error\": {\"code\", \"message\", \"details\"}}."
+    ),
+    version="1.0.0",
+)
 
 app.include_router(sala_router.router)
 app.include_router(usuario_router.router)

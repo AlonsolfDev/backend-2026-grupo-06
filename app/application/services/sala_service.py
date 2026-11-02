@@ -8,7 +8,8 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.domain.entities import Sala, EstadoSala
-from app.domain.errores import RecursoNoEncontrado
+from app.domain.errores import ConflictoError, RecursoNoEncontrado
+from app.infrastructure.repositories.reserva_repository import ReservaRepository
 from app.infrastructure.repositories.sala_repository import SalaRepository
 from app.presentation.schemas.dtos import SalaCreate
 
@@ -68,4 +69,9 @@ def actualizar_sala(db: Session, sala_id: int, data: SalaCreate) -> Sala:
 
 def eliminar_sala(db: Session, sala_id: int) -> None:
     obtener_sala(db, sala_id)  # lanza RecursoNoEncontrado si no existe
+    # Integridad de referencias: no se borra una sala que tiene reservas
+    if ReservaRepository(db).listar_por_sala(sala_id):
+        raise ConflictoError(
+            f"No se puede eliminar la sala {sala_id} porque tiene reservas asociadas."
+        )
     SalaRepository(db).eliminar(sala_id)
