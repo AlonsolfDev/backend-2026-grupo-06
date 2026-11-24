@@ -1,0 +1,49 @@
+name: CI - lint, pruebas y build
+
+on:
+  push:
+    branches: [main, "feature/**", "fix/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  calidad:
+    name: Linter y formato
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+      - name: Ruff (linter)
+        run: ruff check .
+      - name: Ruff (formato)
+        run: ruff format --check .
+
+  pruebas:
+    name: Pruebas y cobertura
+    runs-on: ubuntu-latest
+    needs: calidad
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+      - name: Ejecutar pruebas con cobertura
+        run: pytest --cov=app --cov-report=term-missing --cov-fail-under=85
+
+  imagen:
+    name: Build de la imagen Docker
+    runs-on: ubuntu-latest
+    needs: pruebas
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir imagen
+        run: docker build -t reservas-uct:ci .
