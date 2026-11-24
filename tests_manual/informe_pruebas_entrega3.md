@@ -142,6 +142,23 @@ alembic history      # 2 revisiones
 Las colecciones `.http` de esta carpeta se ejecutan de arriba hacia abajo en
 VS Code (REST Client) y cubren los casos CP-01 a CP-37.
 
+### Validación del stack Docker
+
+El stack se levantó y verificó el **23-11-2026** con Docker 29.8.2 y Compose
+v5.5.1 sobre Windows. Resultado:
+
+- `docker compose up -d --build`: 4 contenedores; `db` y `mailpit` en estado
+  `healthy`, `api` respondiendo en `http://localhost:8000`.
+- Migraciones aplicadas: `e4571a0ef542` → `a1b2c3d4e5f6` (head).
+- Seeder ejecutado con los tres usuarios demo.
+- `GET /` 200, `GET /reservas` 200 (2 reservas), `GET /equipamientos` 200 (2 equipos).
+- `POST /auth/login` 200 (`expires_in` 900) y `GET /auth/me` 200.
+- `POST /auth/recuperacion/solicitar` 202, correo visible en Mailpit (8025).
+- Enlace de recuperación: primer uso 200, segundo uso 401, contraseña anterior
+  rechazada y contraseña nueva aceptada.
+- Rol insuficiente: 403. Sin token: 401.
+- Adminer (8080) y Mailpit (8025) responden 200.
+
 ---
 
 ## 5. Evidencia pendiente de captura
