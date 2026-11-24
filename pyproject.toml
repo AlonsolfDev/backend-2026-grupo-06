@@ -1,0 +1,42 @@
+[project]
+name = "reservas-uct-grupo06"
+version = "1.0.0"
+description = "API REST de reservas de salas y laboratorios - ICINF1108 Grupo 06"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q --strict-markers"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/infrastructure/models/*", "app/infrastructure/seeders/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations/versions", "venv", ".venv", "tests_manual"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# UP042: se mantiene `class X(str, Enum)` porque es el patrón usado por el
+# proyecto y serializa igual en Pydantic v2.
+ignore = ["B008", "UP007", "UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+# Los nombres entre comillas son referencias que SQLAlchemy resuelve en runtime.
+"app/infrastructure/models/*.py" = ["F821"]
+
+[tool.ruff.format]
+quote-style = "double"
