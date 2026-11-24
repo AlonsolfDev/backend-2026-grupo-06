@@ -1,7 +1,9 @@
+from datetime import date, datetime, time
+
 from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session
 
-from app.domain.entities import Reserva
+from app.domain.entities import EstadoReserva, Reserva
 from app.infrastructure.mappers.reserva_mapper import reserva_a_dominio, reserva_a_modelo
 from app.infrastructure.models import ReservaModel
 
@@ -15,21 +17,37 @@ class ReservaRepository:
 
     def listar_paginado(
         self,
-        sala_id: int | None,
-        ordenar_por: str,
-        direccion: str,
-        pagina: int,
-        limite: int,
+        usuario_id: int | None = None,
+        sala_id: int | None = None,
+        estado: EstadoReserva | None = None,
+        fecha: date | None = None,
+        ordenar_por: str = "fecha_inicio",
+        direccion: str = "asc",
+        pagina: int = 1,
+        limite: int = 20,
     ) -> tuple[list[Reserva], int]:
-        """Filtra, ordena y pagina en la base de datos. Devuelve (items, total)."""
+        """Filtra, ordena y pagina en la base de datos. Devuelve (items, total).
+
+        Los filtros son acumulativos: se pueden combinar usuario, sala, estado
+        y fecha del día en una misma consulta.
+        """
         consulta = select(ReservaModel)
+        if usuario_id is not None:
+            consulta = consulta.where(ReservaModel.usuario_id == usuario_id)
         if sala_id is not None:
             consulta = consulta.where(ReservaModel.sala_id == sala_id)
+        if estado is not None:
+            consulta = consulta.where(ReservaModel.estado == estado)
+        if fecha is not None:
+            inicio_dia = datetime.combine(fecha, time.min)
+            fin_dia = datetime.combine(fecha, time.max)
+            consulta = consulta.where(
+                ReservaModel.fecha_inicio >= inicio_dia,
+                ReservaModel.fecha_inicio <= fin_dia,
+            )
 
         # el total se calcula sobre los registros ya filtrados
-        total = self.db.scalar(
-            select(func.count()).select_from(consulta.subquery())
-        ) or 0
+        total = self.db.scalar(select(func.count()).select_from(consulta.subquery())) or 0
 
         columna = getattr(ReservaModel, ordenar_por)
         orden = desc(columna) if direccion == "desc" else asc(columna)
