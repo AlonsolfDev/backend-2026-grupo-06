@@ -1,39 +1,136 @@
-### Pruebas manuales - Usuario
-### Sistema de Reservas de Salas y Laboratorios
+# Colección de pruebas manuales — Usuarios y autenticación
+# Extensión: REST Client (VS Code) o Thunder Client.
+# Ejecutar de arriba hacia abajo: el login guarda el token.
 
-### 1. Crear Usuario - Caso exitoso
-POST http://127.0.0.1:8000/usuarios
+@host = http://localhost:8000
+
+### 0. Estado del servicio (200)
+GET {{host}}/
+
+### 1. Login del administrador (200) — guarda el token
+# @name login
+POST {{host}}/auth/login
 Content-Type: application/json
 
 {
-  "nombre": "Camila Rojas",
-  "correo": "camila.rojas@duocuc.cl",
-  "rol": "estudiante"
+  "correo": "admin@uct.cl",
+  "password": "Demo.2026.Segura!"
 }
 
-### Resultado esperado: 201 Created, devuelve el usuario con id y activo: true
-### Resultado obtenido: 201 Created, id: 1 ✅
+@token = {{login.response.body.$.access_token}}
 
-### 2. Crear Usuario - Caso de error (correo con formato inválido)
-POST http://127.0.0.1:8000/usuarios
+### 2. Perfil autenticado (200)
+GET {{host}}/auth/me
+Authorization: Bearer {{token}}
+
+### 3. Perfil sin token (401 UNAUTHORIZED)
+GET {{host}}/auth/me
+
+### 4. Crear usuario con rol docente (201)
+POST {{host}}/usuarios
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "nombre": "Pedro Soto",
-  "correo": "esto-no-es-un-correo",
-  "rol": "docente"
+  "nombre": "Jesús Huentemil",
+  "correo": "jesus@uct.cl",
+  "rol": "docente",
+  "password": "Prueba.2026.Segura!"
 }
 
-### Resultado esperado: 422 Unprocessable Entity (Pydantic valida el formato del correo)
+### 5. Listar usuarios (200)
+GET {{host}}/usuarios
+Authorization: Bearer {{token}}
 
-### 3. Listar Usuarios
-GET http://127.0.0.1:8000/usuarios
+### 6. Correo duplicado (409 CONFLICT)
+POST {{host}}/usuarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-### Resultado esperado: 200 OK, lista con los usuarios creados
+{
+  "nombre": "Jesús repetido",
+  "correo": "jesus@uct.cl",
+  "rol": "docente",
+  "password": "Prueba.2026.Segura!"
+}
 
-### 4. Obtener Usuario inexistente - Caso de error
-GET http://127.0.0.1:8000/usuarios/9999
+### 7. Contraseña débil (400 BUSINESS_RULE_VIOLATION)
+POST {{host}}/auth/registro
+Content-Type: application/json
 
-### Resultado esperado: 404 Not Found
-### Nota: actualmente devuelve 400 con code "BUSINESS_RULE_VIOLATION" en vez de 404.
-### Pendiente de revisar con el grupo el manejador de errores global (main.py).
+{
+  "nombre": "Clave Débil",
+  "correo": "debil@alu.uct.cl",
+  "password": "123456"
+}
+
+### 8. Registro público válido (201, siempre estudiante)
+POST {{host}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "Alonso Lantaño",
+  "correo": "alonso@alu.uct.cl",
+  "password": "Prueba.2026.Segura!"
+}
+
+### 9. Usuario inexistente (404 RESOURCE_NOT_FOUND)
+GET {{host}}/usuarios/9999
+Authorization: Bearer {{token}}
+
+### 10. Validación de formato (422 VALIDATION_ERROR)
+POST {{host}}/usuarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "X",
+  "correo": "no-es-un-correo",
+  "rol": "docente",
+  "password": "Prueba.2026.Segura!"
+}
+
+### 11. Rol insuficiente: login estudiante y crear sala (403 FORBIDDEN)
+# @name loginEstudiante
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "luis@uct.cl",
+  "password": "Demo.2026.Segura!"
+}
+
+POST {{host}}/salas
+Authorization: Bearer {{loginEstudiante.response.body.$.access_token}}
+Content-Type: application/json
+
+{
+  "nombre": "Sala Prohibida",
+  "capacidad": 10,
+  "ubicacion": "Edificio X"
+}
+
+### 12. Refresh y reutilización (200 y luego 401)
+# @name refresh
+POST {{host}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{loginEstudiante.response.body.$.refresh_token}}"
+}
+
+### 13. Reutilizar el refresh ya rotado (401 UNAUTHORIZED)
+POST {{host}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{loginEstudiante.response.body.$.refresh_token}}"
+}
+
+### 14. Recuperación de contraseña (202) — revisar Mailpit en :8025
+POST {{host}}/auth/recuperacion/solicitar
+Content-Type: application/json
+
+{
+  "correo": "luis@uct.cl"
+}

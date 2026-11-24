@@ -1,50 +1,97 @@
-### Sistema de Reservas de Salas y Laboratorios
-### Pruebas manuales del CRUD de Sala + filtrado, orden y paginación
-### Base URL: http://127.0.0.1:8000
+# Colección de pruebas manuales — Salas
 
-### 1. Crear Sala - Caso exitoso
-POST http://127.0.0.1:8000/salas
+@host = http://localhost:8000
+
+# @name login
+POST {{host}}/auth/login
 Content-Type: application/json
 
 {
-  "nombre": "Sala A1",
-  "capacidad": 6,
-  "ubicacion": "Piso 1"
+  "correo": "admin@uct.cl",
+  "password": "Demo.2026.Segura!"
 }
 
-### Resultado esperado: 201 Created, devuelve la sala con id y estado "disponible"
+@token = {{login.response.body.$.access_token}}
 
-### 2. Crear otra Sala - Caso exitoso
-POST http://127.0.0.1:8000/salas
+### 1. Crear sala (201)
+# @name crearSala
+POST {{host}}/salas
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "nombre": "Laboratorio C1",
-  "capacidad": 20,
-  "ubicacion": "Piso 3"
+  "nombre": "Laboratorio 3",
+  "capacidad": 8,
+  "ubicacion": "Edificio C, piso 1"
 }
 
-### Resultado esperado: 201 Created
+### 2. Listar con filtro, orden y paginación (200)
+GET {{host}}/salas?estado=disponible&ordenar_por=capacidad&direccion=desc&pagina=1&limite=5
 
-### 3. Listar Salas con filtro, orden y paginación
-GET http://127.0.0.1:8000/salas?estado=disponible&ordenar_por=capacidad&direccion=desc&pagina=1&limite=20
+### 3. Sala con su equipamiento (200)
+GET {{host}}/salas/1
 
-### Resultado esperado: 200 OK, estructura {items, total, pagina, limite, total_paginas},
-### salas ordenadas de mayor a menor capacidad
+### 4. Equipamiento de una sala (200)
+GET {{host}}/salas/1/equipamientos
 
-### 4. Obtener Sala por ID - Caso exitoso
-GET http://127.0.0.1:8000/salas/1
+### 5. Disponibilidad libre (200, disponible=true)
+GET {{host}}/salas/2/disponibilidad?fecha_inicio=2026-12-20T08:00:00&fecha_fin=2026-12-20T10:00:00
 
-### Resultado esperado: 200 OK, devuelve los datos de la sala
+### 6. Disponibilidad ocupada (200, disponible=false)
+GET {{host}}/salas/1/disponibilidad?fecha_inicio=2026-12-02T09:30:00&fecha_fin=2026-12-02T10:30:00
 
-### 5. Obtener Sala - Caso de error (ID inexistente)
-GET http://127.0.0.1:8000/salas/9999
+### 7. Actualizar sala (200)
+PUT {{host}}/salas/{{crearSala.response.body.$.id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-### Resultado esperado: recurso no encontrado.
-### Nota: actualmente devuelve 400 con code "BUSINESS_RULE_VIOLATION" en vez de 404.
-### Pendiente de revisar con el grupo el manejador de errores global (main.py).
+{
+  "nombre": "Laboratorio 3 actualizado",
+  "capacidad": 10,
+  "ubicacion": "Edificio C, piso 2"
+}
 
-### 6. Eliminar Sala - Caso exitoso
-DELETE http://127.0.0.1:8000/salas/1
+### 8. Poner la sala en mantenimiento (200)
+PATCH {{host}}/salas/{{crearSala.response.body.$.id}}/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-### Resultado esperado: 204 No Content
+{
+  "estado": "mantenimiento"
+}
+
+### 9. Reservar una sala en mantenimiento (409 CONFLICT)
+POST {{host}}/reservas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "usuario_id": 3,
+  "sala_id": {{crearSala.response.body.$.id}},
+  "fecha_inicio": "2026-12-21T10:00:00",
+  "fecha_fin": "2026-12-21T12:00:00",
+  "proposito": "Prueba de mantenimiento",
+  "num_asistentes": 5
+}
+
+### 10. Sala inexistente (404 RESOURCE_NOT_FOUND)
+GET {{host}}/salas/9999
+
+### 11. Validación de capacidad (422 VALIDATION_ERROR)
+POST {{host}}/salas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Sala inválida",
+  "capacidad": 0,
+  "ubicacion": "Sin ubicación"
+}
+
+### 12. Eliminar una sala con reservas (409 CONFLICT)
+DELETE {{host}}/salas/1
+Authorization: Bearer {{token}}
+
+### 13. Eliminar la sala creada (204)
+DELETE {{host}}/salas/{{crearSala.response.body.$.id}}
+Authorization: Bearer {{token}}

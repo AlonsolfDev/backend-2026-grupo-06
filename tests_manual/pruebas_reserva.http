@@ -1,27 +1,135 @@
-### 3. Crear Reserva - Caso CRÍTICO (traslape con la reserva del punto 1, ya confirmada)
-POST http://127.0.0.1:8000/reservas
+# Colección de pruebas manuales — Reservas (flujo principal de la demo)
+
+@host = http://localhost:8000
+
+### 0. Login del estudiante (200)
+# @name login
+POST {{host}}/auth/login
 Content-Type: application/json
 
 {
-  "usuario_id": 1,
-  "sala_id": 3,
-  "fecha_inicio": "2026-10-05T10:30:00",
-  "fecha_fin": "2026-10-05T11:30:00"
+  "correo": "luis@uct.cl",
+  "password": "Demo.2026.Segura!"
 }
 
-### Resultado esperado: 409 Conflict (requisito P7 de la problemática)
-### Resultado obtenido: 400 Bad Request, code "BUSINESS_RULE_VIOLATION" ⚠️
-### HALLAZGO 1: la validación solo compara contra reservas CONFIRMADAS, no contra pendientes
-###   (al traslapar contra la reserva 1 en estado "pendiente", no dio error; 
-###    recién dio error después de confirmarla con PATCH /reservas/1/confirmar)
-### HALLAZGO 2: el código de estado es 400, no 409 como exige el criterio P7.
-###   Pendiente de decidir con el grupo si se ajusta el código de estado a 409
-###   y si se debe validar también contra reservas pendientes.
+@token = {{login.response.body.$.access_token}}
+@refresh = {{login.response.body.$.refresh_token}}
 
+### 1. Crear reserva (201) — el usuario_id se fuerza al del token
+# @name crearReserva
+POST {{host}}/reservas
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-### 4. Listar Reservas
-GET http://127.0.0.1:8000/reservas
+{
+  "usuario_id": 2,
+  "sala_id": 2,
+  "fecha_inicio": "2026-12-26T10:00:00",
+  "fecha_fin": "2026-12-26T12:00:00",
+  "proposito": "Trabajo grupal de Backend",
+  "num_asistentes": 5
+}
 
-### Resultado esperado: 200 OK, lista de reservas, con filtro/orden/paginación
-### Resultado obtenido: 200 OK ✅ (bug corregido: se agregó from_attributes=True 
-###   en ReservaOut.model_validate() dentro de reserva_router.py)
+### 2. Listar con filtros combinados (200)
+GET {{host}}/reservas?usuario_id=3&sala_id=2&estado=pendiente&fecha=2026-12-26&ordenar_por=fecha_inicio&direccion=asc
+
+### 3. Obtener la reserva creada (200)
+GET {{host}}/reservas/{{crearReserva.response.body.$.id}}
+
+### 4. Confirmar la reserva (200)
+PATCH {{host}}/reservas/{{crearReserva.response.body.$.id}}/confirmar
+Authorization: Bearer {{token}}
+
+### 5. Consultar disponibilidad (200, false: ya está confirmada)
+GET {{host}}/salas/2/disponibilidad?fecha_inicio=2026-12-26T11:00:00&fecha_fin=2026-12-26T13:00:00
+
+### 6. Solapamiento en la misma sala (409 CONFLICT)
+POST {{host}}/reservas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "usuario_id": 3,
+  "sala_id": 2,
+  "fecha_inicio": "2026-12-26T11:00:00",
+  "fecha_fin": "2026-12-26T13:00:00",
+  "proposito": "Intento de solapamiento",
+  "num_asistentes": 5
+}
+
+### 7. Exceso de capacidad (400 BUSINESS_RULE_VIOLATION)
+POST {{host}}/reservas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "usuario_id": 3,
+  "sala_id": 2,
+  "fecha_inicio": "2026-12-27T10:00:00",
+  "fecha_fin": "2026-12-27T12:00:00",
+  "proposito": "Exceso de capacidad",
+  "num_asistentes": 50
+}
+
+### 8. Fechas incoherentes (422 VALIDATION_ERROR)
+POST {{host}}/reservas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "usuario_id": 3,
+  "sala_id": 2,
+  "fecha_inicio": "2026-12-28T12:00:00",
+  "fecha_fin": "2026-12-28T10:00:00",
+  "proposito": "Fechas invertidas",
+  "num_asistentes": 5
+}
+
+### 9. Reserva ajena: login con otra cuenta (403 FORBIDDEN)
+# @name otroLogin
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "ana@uct.cl",
+  "password": "Demo.2026.Segura!"
+}
+
+PATCH {{host}}/reservas/{{crearReserva.response.body.$.id}}/cancelar
+Authorization: Bearer {{otroLogin.response.body.$.access_token}}
+
+### 10. Cancelar la propia reserva (200)
+PATCH {{host}}/reservas/{{crearReserva.response.body.$.id}}/cancelar
+Authorization: Bearer {{token}}
+
+### 11. Cancelar dos veces (409 CONFLICT)
+PATCH {{host}}/reservas/{{crearReserva.response.body.$.id}}/cancelar
+Authorization: Bearer {{token}}
+
+### 12. Crear sin token (401 UNAUTHORIZED)
+POST {{host}}/reservas
+Content-Type: application/json
+
+{
+  "usuario_id": 3,
+  "sala_id": 2,
+  "fecha_inicio": "2026-12-29T10:00:00",
+  "fecha_fin": "2026-12-29T12:00:00",
+  "proposito": "Sin token",
+  "num_asistentes": 5
+}
+
+### 13. Eliminar la reserva (204)
+DELETE {{host}}/reservas/{{crearReserva.response.body.$.id}}
+Authorization: Bearer {{token}}
+
+### 14. Obtener la reserva eliminada (404 RESOURCE_NOT_FOUND)
+GET {{host}}/reservas/{{crearReserva.response.body.$.id}}
+
+### 15. Logout (204) y refresh posterior (401)
+POST {{host}}/auth/logout
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refresh}}"
+}
