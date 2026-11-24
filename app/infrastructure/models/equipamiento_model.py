@@ -11,9 +11,7 @@ class EquipamientoModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(80))
     tipo: Mapped[str] = mapped_column(String(50))
-    estado: Mapped[EstadoEquipamiento] = mapped_column(
-        Enum(EstadoEquipamiento, native_enum=False)
-    )
+    estado: Mapped[EstadoEquipamiento] = mapped_column(Enum(EstadoEquipamiento, native_enum=False))
     descripcion: Mapped[str] = mapped_column(String(200), default="")
     sala_id: Mapped[int] = mapped_column(ForeignKey("salas.id"))
 

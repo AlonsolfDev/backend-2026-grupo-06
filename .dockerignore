@@ -1,0 +1,17 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.db
+.env
+.git/
+.gitignore
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+docs/
+tests/
+tests_manual/
+.github/
+*.md

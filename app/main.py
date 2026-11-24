@@ -1,25 +1,53 @@
 """
 Punto de entrada de la aplicación. Configura FastAPI y el manejo
 estándar de errores para todos los endpoints.
+
+Formato uniforme de error:
+    {"error": {"code": str, "message": str, "details": list}}
 """
+
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
-from app.domain.errores import ConflictoError, RecursoNoEncontrado, ReglaNegocioError
-from app.presentation.routers import sala_router, usuario_router, equipamiento_router, reserva_router
+from app.domain.errores import (
+    ConflictoError,
+    CuentaBloqueada,
+    NoAutenticado,
+    Prohibido,
+    RecursoNoEncontrado,
+    ReglaNegocioError,
+)
+from app.presentation.routers import (
+    auth_router,
+    equipamiento_router,
+    reserva_router,
+    sala_router,
+    usuario_router,
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+logger = logging.getLogger("reservas.api")
 
 app = FastAPI(
     title="Sistema de Reservas de Salas y Laboratorios",
     description=(
         "API REST para gestionar usuarios, salas, equipamiento y reservas. "
-        "Incluye filtro, orden y paginación en las listas, y errores con formato "
-        "uniforme: {\"error\": {\"code\", \"message\", \"details\"}}."
+        "Incluye autenticación JWT con refresh rotado, recuperación de contraseña "
+        "de un solo uso, roles, filtro, orden y paginación, y errores con formato "
+        'uniforme: {"error": {"code", "message", "details"}}.'
     ),
     version="1.0.0",
+    contact={"name": "Grupo 06 - Desarrollo de Backend ICINF1108"},
 )
 
+app.include_router(auth_router.router)
 app.include_router(sala_router.router)
 app.include_router(usuario_router.router)
 app.include_router(equipamiento_router.router)
@@ -37,6 +65,11 @@ def error_response(code: str, message: str, details: list, status_code: int) -> 
             }
         },
     )
+
+
+@app.get("/", tags=["Estado"], summary="Estado del servicio")
+def estado_servicio():
+    return {"servicio": "reservas-uct", "version": "1.0.0", "estado": "operativo"}
 
 
 # Errores de validación de Pydantic (esquema/tipos) -> 422
@@ -61,7 +94,7 @@ async def recurso_no_encontrado_handler(request: Request, exc: RecursoNoEncontra
     )
 
 
-# Conflicto con el estado actual (ej. sala ya reservada) -> 409
+# Conflicto con el estado actual (solapamiento, sala en mantenimiento) -> 409
 @app.exception_handler(ConflictoError)
 async def conflicto_handler(request: Request, exc: ConflictoError):
     return error_response(
@@ -69,6 +102,43 @@ async def conflicto_handler(request: Request, exc: ConflictoError):
         message=str(exc),
         details=[],
         status_code=409,
+    )
+
+
+# Falta el token o es inválido/expirado -> 401
+@app.exception_handler(NoAutenticado)
+async def no_autenticado_handler(request: Request, exc: NoAutenticado):
+    return JSONResponse(
+        status_code=401,
+        content={
+            "error": {
+                "code": "UNAUTHORIZED",
+                "message": str(exc),
+                "details": [],
+            }
+        },
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+# Autenticado pero sin permisos, o cuenta bloqueada -> 403
+@app.exception_handler(Prohibido)
+async def prohibido_handler(request: Request, exc: Prohibido):
+    return error_response(
+        code="FORBIDDEN",
+        message=str(exc),
+        details=[],
+        status_code=403,
+    )
+
+
+@app.exception_handler(CuentaBloqueada)
+async def cuenta_bloqueada_handler(request: Request, exc: CuentaBloqueada):
+    return error_response(
+        code="ACCOUNT_LOCKED",
+        message=str(exc),
+        details=[],
+        status_code=403,
     )
 
 
@@ -91,4 +161,16 @@ async def value_error_handler(request: Request, exc: ValueError):
         message=str(exc),
         details=[],
         status_code=400,
+    )
+
+
+# Respaldo final: ninguna excepción no controlada escapa como 500 en texto plano.
+@app.exception_handler(Exception)
+async def error_interno_handler(request: Request, exc: Exception):
+    logger.exception("Error no controlado en %s %s", request.method, request.url.path)
+    return error_response(
+        code="INTERNAL_ERROR",
+        message="Ocurrió un error interno. El equipo fue notificado y revisará el registro.",
+        details=[],
+        status_code=500,
     )

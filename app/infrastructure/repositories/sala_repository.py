@@ -27,9 +27,7 @@ class SalaRepository:
             consulta = consulta.where(SalaModel.estado == estado)
 
         # el total se calcula sobre los registros ya filtrados
-        total = self.db.scalar(
-            select(func.count()).select_from(consulta.subquery())
-        ) or 0
+        total = self.db.scalar(select(func.count()).select_from(consulta.subquery())) or 0
 
         columna = getattr(SalaModel, ordenar_por)
         orden = desc(columna) if direccion == "desc" else asc(columna)

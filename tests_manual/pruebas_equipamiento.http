@@ -1,26 +1,101 @@
-### Pruebas manuales - Equipamiento
-### Sistema de Reservas de Salas y Laboratorios
+# Colección de pruebas manuales — Equipamiento
 
-### 1. Crear Equipamiento - Caso exitoso
-POST http://127.0.0.1:8000/equipamientos
+@host = http://localhost:8000
+
+# @name login
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "admin@uct.cl",
+  "password": "Demo.2026.Segura!"
+}
+
+@token = {{login.response.body.$.access_token}}
+
+### 1. Crear equipamiento (201)
+# @name crearEquipo
+POST {{host}}/equipamientos
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
   "nombre": "Proyector Epson",
   "tipo": "proyector",
-  "sala_id": 3
+  "sala_id": 1,
+  "descripcion": "Proyector HDMI de 3000 lúmenes"
 }
 
-### Resultado esperado: 201 Created, estado: "disponible"
+### 2. Listar todo el equipamiento (200)
+GET {{host}}/equipamientos
 
-### 2. Listar Equipamientos
-GET http://127.0.0.1:8000/equipamientos
+### 3. Filtrar por sala (200)
+GET {{host}}/equipamientos?sala_id=1
 
-### Resultado esperado: 200 OK, lista de equipamientos
+### 4. Obtener por ID (200)
+GET {{host}}/equipamientos/1
 
-### 3. Actualizar Estado de Equipamiento
-PATCH http://127.0.0.1:8000/equipamientos/1/estado?nuevo_estado=danado
+### 5. Marcar como dañado (200)
+PATCH {{host}}/equipamientos/1/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-### Resultado esperado: 200 OK, estado cambia a "danado"
-### Resultado obtenido: 200 OK ✅
-### Nota: el endpoint usa un parámetro de query (nuevo_estado), no un cuerpo JSON
+{
+  "estado": "danado"
+}
+
+### 6. Confirmar una reserva con equipo dañado (400 BUSINESS_RULE_VIOLATION)
+# @name reservaConEquipoDanado
+POST {{host}}/reservas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "usuario_id": 2,
+  "sala_id": 1,
+  "fecha_inicio": "2026-12-23T10:00:00",
+  "fecha_fin": "2026-12-23T12:00:00",
+  "proposito": "Regla de equipamiento",
+  "num_asistentes": 10
+}
+
+PATCH {{host}}/reservas/{{reservaConEquipoDanado.response.body.$.id}}/confirmar
+Authorization: Bearer {{token}}
+
+### 7. Reparar el equipo (200)
+PATCH {{host}}/equipamientos/1/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "estado": "disponible"
+}
+
+### 8. Confirmar ahora sí (200)
+PATCH {{host}}/reservas/{{reservaConEquipoDanado.response.body.$.id}}/confirmar
+Authorization: Bearer {{token}}
+
+### 9. Sala inexistente al crear equipo (404 RESOURCE_NOT_FOUND)
+POST {{host}}/equipamientos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Equipo huérfano",
+  "tipo": "otro",
+  "sala_id": 9999,
+  "descripcion": "No debería crearse"
+}
+
+### 10. Estado inválido (422 VALIDATION_ERROR)
+PATCH {{host}}/equipamientos/1/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "estado": "roto"
+}
+
+### 11. Eliminar el equipo creado (204)
+DELETE {{host}}/equipamientos/{{crearEquipo.response.body.$.id}}
+Authorization: Bearer {{token}}

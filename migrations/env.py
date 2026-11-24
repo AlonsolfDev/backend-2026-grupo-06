@@ -8,8 +8,8 @@ from sqlalchemy import engine_from_config, pool
 # Permite importar "app" desde la raíz del proyecto
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.infrastructure.database import Base, DATABASE_URL
 from app.infrastructure import models  # noqa: F401  (registra las tablas en Base.metadata)
+from app.infrastructure.database import DATABASE_URL, Base
 
 config = context.config
 if config.config_file_name is not None:

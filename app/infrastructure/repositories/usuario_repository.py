@@ -16,6 +16,14 @@ class UsuarioRepository:
         modelo = self.db.get(UsuarioModel, usuario_id)
         return usuario_a_dominio(modelo) if modelo else None
 
+    def obtener_por_correo(self, correo: str) -> Usuario | None:
+        modelo = (
+            self.db.query(UsuarioModel)
+            .filter(UsuarioModel.correo == correo.lower().strip())
+            .first()
+        )
+        return usuario_a_dominio(modelo) if modelo else None
+
     def crear(self, usuario: Usuario) -> Usuario:
         modelo = usuario_a_modelo(usuario)
         modelo.id = None  # la base de datos asigna el ID

@@ -4,3 +4,17 @@ __pycache__/
 *.pyc
 *.db
 .env
+
+# Herramientas de calidad y pruebas
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
