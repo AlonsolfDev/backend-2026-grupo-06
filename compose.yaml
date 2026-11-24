@@ -1,0 +1,69 @@
+# Stack completo de la Entrega III:
+#   api      -> FastAPI + Uvicorn (contenedor construido desde el Dockerfile)
+#   db       -> PostgreSQL 16 con volumen persistente
+#   adminer  -> visor web de la base de datos
+#   mailpit  -> buzón SMTP de pruebas (recuperación de contraseña)
+#
+# Uso:
+#   docker compose up --build
+#   API:      http://localhost:8000/docs
+#   Adminer:  http://localhost:8080   (servidor: db)
+#   Mailpit:  http://localhost:8025
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: reservas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: reservas
+      POSTGRES_USER: reservas
+      POSTGRES_PASSWORD: reservas
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reservas -d reservas"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: reservas-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://reservas:reservas@db:5432/reservas
+      SECRET_KEY: ${SECRET_KEY:-clave-docker-grupo06-cambiar-en-produccion-32b}
+      ENTORNO: ${ENTORNO:-dev}
+      EXPONER_ENLACE_RECUPERACION: ${EXPONER_ENLACE_RECUPERACION:-true}
+      BASE_URL: http://localhost:8000
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+    ports:
+      - "8000:8000"
+
+  adminer:
+    image: adminer:latest
+    container_name: reservas-adminer
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: reservas-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # interfaz web
+
+volumes:
+  pgdata:
+    name: reservas-pgdata
