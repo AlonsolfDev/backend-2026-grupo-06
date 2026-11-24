@@ -1,6 +1,7 @@
 """
 Casos de uso de Equipamiento: lógica de negocio y coordinación con el repositorio.
 """
+
 from dataclasses import replace
 
 from sqlalchemy.orm import Session
@@ -32,6 +33,12 @@ def listar_equipamientos(db: Session) -> list[Equipamiento]:
     return EquipamientoRepository(db).listar()
 
 
+def listar_equipamientos_por_sala(db: Session, sala_id: int) -> list[Equipamiento]:
+    if SalaRepository(db).obtener_por_id(sala_id) is None:
+        raise RecursoNoEncontrado(f"No existe una sala con ID {sala_id}.")
+    return EquipamientoRepository(db).listar_por_sala(sala_id)
+
+
 def obtener_equipamiento(db: Session, equipamiento_id: int) -> Equipamiento:
     equipamiento = EquipamientoRepository(db).obtener_por_id(equipamiento_id)
     if equipamiento is None:
@@ -45,3 +52,8 @@ def actualizar_estado_equipamiento(
     equipamiento = obtener_equipamiento(db, equipamiento_id)
     actualizado = replace(equipamiento, estado=nuevo_estado)
     return EquipamientoRepository(db).actualizar(actualizado)
+
+
+def eliminar_equipamiento(db: Session, equipamiento_id: int) -> None:
+    obtener_equipamiento(db, equipamiento_id)
+    EquipamientoRepository(db).eliminar(equipamiento_id)
