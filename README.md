@@ -1,220 +1,274 @@
-# Proyecto Backend - Grupo 6 (ICINF1108)
+# Sistema de Reservas de Salas y Laboratorios — Grupo 06
 
-API REST para gestión de reservas de salas.
+API REST para reservar salas de estudio y laboratorios, con autenticación JWT,
+roles, reglas de negocio, persistencia versionada y stack contenerizado.
 
-## Integrantes y responsabilidades
+**Curso:** Desarrollo de Backend (ICINF1108) · **Grupo:** 06
+**Integrantes:** Alonso Lantaño, Tomás Mardones, Jesús Huentemil, Diego Vásquez
 
-Jefe de grupo: Alonso Lantaño.
-
-## Integrantes y Responsabilidades
-| Integrante | Área de Responsabilidad | Trabajo realizado |
-| --- | --- | --- |
-| Alonso Lantaño | Coordinación + Documentación e Integración | Liderazgo, integración Git, README, contratos OpenAPI y docs |
-| Diego Vásquez | Dominio y Datos | Modelos ORM, SQLite, migraciones Alembic y seeders |
-| Jesús Huentemil | API y Lógica de Negocio | Routers FastAPI, servicios, excepciones y paginación |
-| Tomás Mardones | Calidad y Pruebas | Matriz de pruebas, capturas de evidencias e informe |
-
-## Entidades
-
-| Entidad | Descripción |
+| | |
 |---|---|
-| **Sala** | Espacio disponible para ser reservado |
-| **Usuario** | Persona que realiza reservas |
-| **Reserva** | Asocia un usuario con una sala. Al crearla se valida que la sala y el usuario existan |
-| **Equipamiento** | Recursos disponibles, con un estado que puede actualizarse |
+| **API (Swagger)** | http://localhost:8000/docs |
+| **OpenAPI JSON** | http://localhost:8000/openapi.json |
+| **Adminer (visor BD)** | http://localhost:8080 |
+| **Mailpit (correo de prueba)** | http://localhost:8025 |
 
-## Requisitos
+---
 
-- Python 3.14 (versión con la que se probó el proyecto)
-- Git
+## 1. Stack
 
-## Instalación
+- **Python 3.12** + **FastAPI** + **Pydantic v2** + **Uvicorn**
+- **SQLAlchemy 2** + **Alembic** (migraciones y seeders)
+- **SQLite** en local / **PostgreSQL 16** en Docker
+- **Argon2id** para contraseñas y **JWT (HS256)** para tokens
+- **pytest** + **pytest-cov** (37 pruebas, 89 % de cobertura)
+- **Ruff** (linter y formato) + **GitHub Actions** (CI)
+- **Docker Compose**: API + PostgreSQL + Adminer + Mailpit
 
-1. Clonar el repositorio:
-```bash
-git clone https://github.com/AlonsolfDev/backend-2026-grupo-06.git
-cd backend-2026-grupo-06
-```
-2. Crear y activar el entorno virtual:
-```bash
-python -m venv venv
-# Windows (PowerShell): venv\Scripts\Activate.ps1
-# Linux / Mac: source venv/bin/activate
-```
-3. Instalar las dependencias:
-```bash
-pip install -r requirements.txt
-```
-
-## Variables de entorno
-
-Copiar `.env.example` a `.env` y ajustar si es necesario:
-```
-DATABASE_URL=sqlite:///./reservas.db
-```
-
-## Base de datos, migraciones y seeders
-
-La base de datos usa SQLite por defecto (`sqlite:///./reservas.db`) y se configura con la variable `DATABASE_URL`. Los modelos ORM (SQLAlchemy) están en `app/infrastructure/models/` e incluyen las cuatro entidades con sus relaciones 1:N (Usuario→Reserva, Sala→Reserva, Sala→Equipamiento). El diagrama de datos está en `docs/diagrama-datos.md`.
-
-Crear las tablas desde cero:
+## 2. Inicio rápido en local
 
 ```bash
-alembic upgrade head
-```
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux / macOS
+source .venv/bin/activate
 
-Cargar datos de ejemplo (se puede ejecutar varias veces sin duplicar registros):
+pip install -r requirements-dev.txt
 
-```bash
+cp .env.example .env          # ajustar SECRET_KEY
+alembic upgrade head          # crea/actualiza las tablas
 python -m app.infrastructure.seeders.seed
-```
 
-Para reiniciar la base: borrar `reservas.db` y repetir los dos comandos.
-
-## Ejecución
-
-```bash
 uvicorn app.main:app --reload
 ```
-El servidor queda disponible en http://127.0.0.1:8000
 
-Documentación Swagger: http://127.0.0.1:8000/docs
+### Usuarios de demostración
 
-## Arquitectura por capas
-
-| Capa | Carpeta | Función |
+| Correo | Rol | Contraseña |
 |---|---|---|
-| Presentación | `app/presentation/` | Routers HTTP y DTOs (schemas) |
-| Aplicación | `app/application/services/` | Casos de uso y coordinación |
-| Dominio | `app/domain/` | Entidades y reglas de negocio |
-| Infraestructura | `app/infrastructure/` | Repositorios y acceso a datos |
+| `admin@uct.cl` | administrador | `Demo.2026.Segura!` |
+| `ana@uct.cl` | docente | `Demo.2026.Segura!` |
+| `luis@uct.cl` | estudiante | `Demo.2026.Segura!` |
 
-`app/main.py` crea y ensambla la aplicación. La lógica de negocio no vive en los routers.
+> La contraseña cumple la política: 12+ caracteres, mayúscula, minúscula,
+> dígito y símbolo.
 
-## Recorrido de una solicitud
+## 3. Inicio con Docker (stack completo)
 
-El flujo técnico de una petición (por ejemplo, al registrar una reserva en `POST /reservas`) recorre las capas en la siguiente secuencia:
+```bash
+docker compose up --build
+```
 
-[ Cliente / Swagger UI ]
-       │
-       ▼ (1) Envío de JSON con datos
-┌──────────────────────────────────────────────┐
-│  Presentation (app/presentation/routers/)    │  <-- Valida formato con Pydantic (ReservaCreate DTO)
-└──────────────────────┬───────────────────────┘
-                       │
-                       ▼ (2) Evaluación de lógica
-┌──────────────────────────────────────────────┐
-│  Application (app/application/services/)     │  <-- Aplica reglas (fechas válidas y disponib. de sala)
-└──────────────────────┬───────────────────────┘
-                       │
-                       ▼ (3) Mapeo y persistencia
-┌──────────────────────────────────────────────┐
-│  Infrastructure (app/infrastructure/repos/)  │  <-- Traduce entidad a ORM SQLAlchemy (ReservaModel)
-└──────────────────────┬───────────────────────┘
-                       │
-                       ▼ (4) Transacción SQL
-┌──────────────────────────────────────────────┐
-│  Base de Datos (reservas.db - SQLite)        │  <-- Guarda el registro persistente en disco
-└──────────────────────────────────────────────┘
+| Servicio | Contenedor | Puerto | Función |
+|---|---|---|---|
+| `api` | `reservas-api` | 8000 | FastAPI + Uvicorn (migra y siembra al iniciar) |
+| `db` | `reservas-db` | 5432 | PostgreSQL 16 con volumen `reservas-pgdata` |
+| `adminer` | `reservas-adminer` | 8080 | Visor web de la base de datos |
+| `mailpit` | `reservas-mailpit` | 1025 / 8025 | SMTP de prueba y buzón web |
 
-## Endpoints principales
+El contenedor de la API ejecuta `alembic upgrade head` y el seeder antes de
+levantar Uvicorn. El volumen `reservas-pgdata` conserva los datos entre
+reinicios (se comprueba con `docker compose down` y `docker compose up`).
+
+## 4. Endpoints (31 operaciones de negocio)
+
+### Autenticación
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/auth/registro` | público | Crea cuenta de estudiante (no permite escalar rol) |
+| POST | `/auth/login` | público | Devuelve access token + refresh token |
+| POST | `/auth/refresh` | refresh token | Rota el refresh y emite un par nuevo |
+| POST | `/auth/logout` | refresh token | Revoca el refresh indicado |
+| GET | `/auth/me` | autenticado | Perfil del usuario del token |
+| POST | `/auth/recuperacion/solicitar` | público | Genera enlace de un solo uso |
+| POST | `/auth/recuperacion/restablecer` | token de recuperación | Cambia la contraseña e invalida sesiones |
 
 ### Salas
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST | `/salas` | Crear una sala |
-| GET | `/salas` | Listar todas las salas |
-| GET | `/salas/{sala_id}` | Obtener una sala por ID |
-| PUT | `/salas/{sala_id}` | Actualizar una sala |
-| DELETE | `/salas/{sala_id}` | Eliminar una sala |
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/salas` | administrador | Crea una sala |
+| GET | `/salas` | público | Lista con filtro, orden y paginación |
+| GET | `/salas/{id}` | público | Sala + su equipamiento |
+| GET | `/salas/{id}/equipamientos` | público | Equipamiento de la sala |
+| GET | `/salas/{id}/disponibilidad` | público | Disponibilidad en un rango horario |
+| PUT | `/salas/{id}` | administrador | Actualiza nombre, capacidad y ubicación |
+| PATCH | `/salas/{id}/estado` | administrador | Disponible ↔ mantenimiento |
+| DELETE | `/salas/{id}` | administrador | Elimina (409 si tiene reservas) |
 
 ### Usuarios
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST | `/usuarios` | Crear un usuario |
-| GET | `/usuarios` | Listar todos los usuarios |
-| GET | `/usuarios/{usuario_id}` | Obtener un usuario por ID |
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/usuarios` | administrador | Crea usuario con rol y contraseña |
+| GET | `/usuarios` | administrador | Lista usuarios |
+| GET | `/usuarios/{id}` | propio usuario o administrador | Detalle |
+| PATCH | `/usuarios/{id}/rol` | administrador | Cambia el rol |
+
+### Equipamiento
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/equipamientos` | administrador | Crea equipo asociado a una sala |
+| GET | `/equipamientos` | público | Lista (filtro `sala_id`) |
+| GET | `/equipamientos/{id}` | público | Detalle |
+| PATCH | `/equipamientos/{id}/estado` | administrador | Disponible ↔ dañado |
+| DELETE | `/equipamientos/{id}` | administrador | Elimina |
 
 ### Reservas
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST | `/reservas` | Crear una reserva (valida que existan la sala y el usuario) |
-| GET | `/reservas` | Listar todas las reservas |
-| GET | `/reservas/{reserva_id}` | Obtener una reserva por ID |
-| PUT | `/reservas/{reserva_id}` | Actualizar una reserva |
-| DELETE | `/reservas/{reserva_id}` | Eliminar una reserva |
-| PATCH | `/reservas/{reserva_id}/confirmar` | Confirmar una reserva |
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/reservas` | autenticado | Crea reserva (a nombre propio si no es admin) |
+| GET | `/reservas` | público | Filtros `usuario_id`, `sala_id`, `estado`, `fecha`; orden y paginación |
+| GET | `/reservas/{id}` | público | Detalle |
+| PUT | `/reservas/{id}` | dueño o administrador | Actualiza (conserva estado) |
+| PATCH | `/reservas/{id}/confirmar` | dueño o administrador | Confirma si no hay conflicto ni equipos dañados |
+| PATCH | `/reservas/{id}/cancelar` | dueño o administrador | Cancela (409 si ya estaba cancelada) |
+| DELETE | `/reservas/{id}` | dueño o administrador | Elimina |
 
-### Equipamientos
+## 5. Autenticación y seguridad
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST | `/equipamientos` | Crear un equipamiento |
-| GET | `/equipamientos` | Listar todos los equipamientos |
-| GET | `/equipamientos/{equipamiento_id}` | Obtener un equipamiento por ID |
-| PATCH | `/equipamientos/{equipamiento_id}/estado` | Actualizar el estado de un equipamiento |
+```http
+POST /auth/login
+Content-Type: application/json
 
-## Estructura del proyecto
-
-```
-backend-2026-grupo-06/
-├── app/
-│   ├── main.py                      # Punto de entrada de la aplicación FastAPI
-│   ├── presentation/
-│   │   ├── routers/                 # Endpoints de la API
-│   │   │   ├── sala_router.py
-│   │   │   ├── usuario_router.py
-│   │   │   ├── reserva_router.py
-│   │   │   └── equipamiento_router.py
-│   │   └── schemas/
-│   │       └── dtos.py              # Modelos Pydantic de entrada y salida
-│   ├── application/
-│   │   └── services/                # Lógica de negocio (una por entidad)
-│   │       ├── sala_service.py
-│   │       ├── usuario_service.py
-│   │       ├── reserva_service.py   # Valida que existan Sala y Usuario
-│   │       └── equipamiento_service.py
-│   ├── domain/
-│   │   ├── entities.py              # Entidades: Sala, Usuario, Reserva, Equipamiento
-│   │   └── reglas_negocio.py        # Reglas de negocio del dominio
-│   ├── infrastructure/
-│   │   └── repositories/            # Acceso a datos (una clase por entidad)
-│   │       ├── sala_repository.py
-│   │       ├── usuario_repository.py
-│   │       ├── reserva_repository.py
-│   │       └── equipamiento_repository.py
-│   └── shared/
-│       └── in_memory_store.py       # Almacenamiento en memoria (se reemplaza por la BD)
-├── tests_manual/                    # Pruebas manuales de los endpoints (.http)
-│   ├── pruebas_sala.http
-│   ├── pruebas_usuario.http
-│   ├── pruebas_reserva.http
-│   └── pruebas_equipamiento.http
-├── .env.example                     # Variables de entorno de ejemplo
-├── requirements.txt                 # Dependencias del proyecto
-└── README.md
+{"correo": "admin@uct.cl", "password": "Demo.2026.Segura!"}
 ```
 
-**Nota:** los datos se guardan en una base SQLite (`reservas.db`) y se conservan al reiniciar el servidor.
+```json
+{
+  "access_token": "eyJhbGciOi...",
+  "refresh_token": "fpGuR7QPmMl-csWE...",
+  "token_type": "bearer",
+  "expires_in": 900
+}
+```
 
-## Ejecución de pruebas
+```http
+GET /auth/me
+Authorization: Bearer <access_token>
+```
 
-Para reproducir la batería de pruebas y verificar el comportamiento de la API:
+| Control | Implementación |
+|---|---|
+| Hash de contraseña | **Argon2id** (`time_cost=3`, 64 MB, paralelismo 4) |
+| Política de contraseña | mínimo **12** caracteres + mayúscula + minúscula + dígito + símbolo |
+| Token de acceso | JWT HS256, 15 minutos, con `sub`, `rol`, `tipo`, `jti`, `iat`, `exp` |
+| Refresh token | **opaco** de 256 bits; en BD solo su **SHA-256** |
+| Rotación | cada refresh revoca el anterior |
+| Reutilización detectada | se revocan **todas** las sesiones del usuario |
+| Logout | revoca el refresh (idempotente) |
+| Recuperación | JWT con `tipo=recuperacion`, `jti` registrado, **un solo uso**, 15 min |
+| Sesiones previas | se invalidan al restablecer la contraseña |
+| Bloqueo | 5 intentos fallidos → cuenta bloqueada 15 minutos |
+| 401 vs 403 | 401 sin token/inválido · 403 autenticado sin permiso o cuenta bloqueada |
+| Perfiles | `administrador` y `usuario` (docente/estudiante) |
 
-1. **Pruebas mediante archivos `.http` (REST Client):**
-   - En VS Code, instala la extensión **REST Client**.
-   - Abre la carpeta `tests_manual/` y ejecuta los archivos de solicitudes:
-     - `pruebas_usuario.http`: Creación (201), duplicados (409) y no encontrado (404).
-     - `pruebas_sala.http`: CRUD de salas y consultas con filtro/paginación (200).
-     - `pruebas_equipamiento.http`: Cambio de estado de equipamiento (200).
-     - `pruebas_reserva.http`: Creación, confirmación (200) y solapamiento de horario (409).
+### Recuperación de contraseña en desarrollo
 
-2. **Informe de evidencias de Calidad y Pruebas:**
-   - La matriz detallada con los casos de prueba, resultados esperados vs. obtenidos y capturas de pantalla de evidencias se encuentra documentada en `tests_manual/informe_pruebas.md`.
-   - Las imágenes asociadas a las evidencias se almacenan en la carpeta `tests_manual/capturas/`.
+1. `POST /auth/recuperacion/solicitar` con `{"correo": "..."}`.
+2. El correo se entrega a **Mailpit** (`http://localhost:8025`).
+3. En `ENTORNO=dev` el enlace también se devuelve en `enlace_recuperacion`
+   (la pauta lo permite en entornos de prueba). En `produccion` se oculta.
+4. `POST /auth/recuperacion/restablecer` con `{"token": "...", "password_nueva": "..."}`.
 
-3. **Verificación de Persistencia tras Reinicio:**
-   - Se incluye el script `tests_manual/verificar_persistencia.py` para comprobar que las modificaciones permanecen guardadas en la base de datos `reservas.db` tras reiniciar el proceso de Uvicorn.
+## 6. Reglas de negocio
+
+| # | Regla | Respuesta |
+|---|---|---|
+| 1 | Una reserva no puede terminar antes de empezar | `400` |
+| 2 | No se reserva una sala con otra reserva **confirmada** solapada | `409` |
+| 3 | No se confirma una reserva si la sala tiene **equipamiento dañado** | `400` |
+| 4 | Los asistentes no pueden superar la **capacidad** de la sala | `400` |
+| 5 | No se reserva una sala en **mantenimiento** | `409` |
+
+## 7. Formato uniforme de error
+
+```json
+{
+  "error": {
+    "code": "RESOURCE_NOT_FOUND",
+    "message": "No existe una sala con ID 999.",
+    "details": []
+  }
+}
+```
+
+| Código | HTTP | Cuándo |
+|---|---|---|
+| `VALIDATION_ERROR` | 422 | Tipos o campos inválidos (Pydantic) |
+| `RESOURCE_NOT_FOUND` | 404 | El recurso no existe |
+| `CONFLICT` | 409 | Solapamiento, sala en mantenimiento, borrado con dependencias |
+| `BUSINESS_RULE_VIOLATION` | 400 | Capacidad, fechas, equipamiento dañado, contraseña débil |
+| `UNAUTHORIZED` | 401 | Token ausente, inválido o expirado |
+| `FORBIDDEN` | 403 | Rol insuficiente o recurso ajeno |
+| `ACCOUNT_LOCKED` | 403 | Bloqueo por intentos fallidos |
+| `INTERNAL_ERROR` | 500 | Excepción no controlada (siempre JSON, nunca texto plano) |
+
+## 8. Pruebas y calidad
+
+```bash
+pytest --cov=app --cov-report=term-missing
+ruff check .
+ruff format --check .
+```
+
+| Tipo | Cantidad | Archivo |
+|---|---|---|
+| Unitarias (dominio y contraseñas) | 7 | `tests/test_unit_reglas.py` |
+| Integración (auth, reservas, salas) | 27 | `tests/test_integracion_auth.py`, `tests/test_integracion_reservas.py` |
+| End-to-end | 3 | `tests/test_e2e.py` |
+
+Resultado actual: **37 pruebas aprobadas, 89 % de cobertura**.
+El CI (`.github/workflows/ci.yml`) ejecuta linter, formato, pruebas con
+`--cov-fail-under=85` y build de la imagen Docker en cada push y PR.
+
+## 9. Estructura del proyecto
+
+```
+app/
+├── domain/                 # Entidades, errores y reglas de negocio (sin framework)
+├── application/services/   # Casos de uso: auth, reservas, salas, usuarios, equipos
+├── infrastructure/
+│   ├── models/             # Modelos ORM
+│   ├── mappers/            # Entidad ↔ modelo
+│   ├── repositories/       # Acceso a datos
+│   ├── security/           # Argon2id, JWT, correo
+│   ├── config.py           # Configuración por variables de entorno
+│   └── seeders/            # Datos de demostración
+└── presentation/
+    ├── routers/            # Endpoints FastAPI
+    ├── schemas/dtos.py     # DTOs de entrada/salida
+    └── dependencies.py     # Sesión de BD y usuario autenticado
+migrations/                 # Alembic
+tests/                      # pytest
+docs/                       # Diagramas y retroalimentación
+tests_manual/               # Colecciones .http e informe de evidencias
+```
+
+## 10. Documentación
+
+- [Diagrama de datos](docs/diagrama-datos.md)
+- [Diagrama de clases](docs/diagrama-clases.md)
+- [Matriz de retroalimentación](docs/retroalimentacion.md)
+- [Guion de defensa](docs/guia-defensa.md)
+- [Informe de pruebas de la Entrega III](tests_manual/informe_pruebas_entrega3.md)
+
+## 11. Decisiones y limitaciones
+
+- **Sin frontend:** la pauta no lo solicita; la comprobación se hace con Swagger.
+- **Correo:** se usa **Mailpit** en lugar de un SMTP real para que la
+  recuperación sea demostrable y reproducible sin credenciales externas.
+- **Despliegue en Kubero:** no fue solicitado por el docente en esta sección;
+  el proyecto queda contenerizado y listo para cualquier PaaS. Se documenta la
+  decisión para que no se interprete como un requisito omitido.
+- **Recuperación en producción:** `EXPONER_ENLACE_RECUPERACION=false` evita que
+  el enlace se filtre en la respuesta JSON.
+
+## 12. Historial de versiones
+
+- **v1.0** — Entrega III: correcciones de la retroalimentación, autenticación
+  completa, recuperación de contraseña, contenedores, CI y pruebas automatizadas.
