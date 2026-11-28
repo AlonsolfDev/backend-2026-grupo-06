@@ -21,7 +21,7 @@ roles, reglas de negocio, persistencia versionada y stack contenerizado.
 - **SQLAlchemy 2** + **Alembic** (migraciones y seeders)
 - **SQLite** en local / **PostgreSQL 16** en Docker
 - **Argon2id** para contraseñas y **JWT (HS256)** para tokens
-- **pytest** + **pytest-cov** (37 pruebas, 89 % de cobertura)
+- **pytest** + **pytest-cov** (44 pruebas, 90 % de cobertura)
 - **Ruff** (linter y formato) + **GitHub Actions** (CI)
 - **Docker Compose**: API + PostgreSQL + Adminer + Mailpit
 
@@ -162,10 +162,13 @@ Authorization: Bearer <access_token>
 | Reutilización detectada | se revocan **todas** las sesiones del usuario |
 | Logout | revoca el refresh (idempotente) |
 | Recuperación | JWT con `tipo=recuperacion`, `jti` registrado, **un solo uso**, 15 min |
+| Recuperación repetida | ventana mínima de **120 s** por cuenta; responde 202 genérico sin generar otro enlace y **no bloquea la cuenta** |
+| CORS | orígenes explícitos en `CORS_ORIGINS`; no se usa `*` porque se permiten credenciales |
 | Sesiones previas | se invalidan al restablecer la contraseña |
 | Bloqueo | 5 intentos fallidos → cuenta bloqueada 15 minutos |
 | 401 vs 403 | 401 sin token/inválido · 403 autenticado sin permiso o cuenta bloqueada |
-| Perfiles | `administrador` y `usuario` (docente/estudiante) |
+| Perfiles | `administrador`, `docente` y `estudiante` |
+| Errores 422 | no reenvían `input` ni `ctx` de Pydantic: una contraseña o token enviado con tipo inválido no se refleja en la respuesta |
 
 ### Recuperación de contraseña en desarrollo
 
@@ -174,6 +177,19 @@ Authorization: Bearer <access_token>
 3. En `ENTORNO=dev` el enlace también se devuelve en `enlace_recuperacion`
    (la pauta lo permite en entornos de prueba). En `produccion` se oculta.
 4. `POST /auth/recuperacion/restablecer` con `{"token": "...", "password_nueva": "..."}`.
+5. Si se repite la solicitud dentro de `RECUPERACION_COOLDOWN_SEGUNDOS`
+   (120 s por defecto), la API mantiene la respuesta genérica `202`, no crea
+   otro token y no bloquea la cuenta. El enlace anterior sigue siendo válido.
+
+### Variables de seguridad
+
+| Variable | Por defecto | Uso |
+|---|---|---|
+| `CORS_ORIGINS` | `http://localhost:3000,http://localhost:5173,...` | Orígenes explícitos autorizados, separados por coma |
+| `RECUPERACION_COOLDOWN_SEGUNDOS` | `120` | Segundos mínimos entre solicitudes de recuperación de una cuenta |
+| `MAX_INTENTOS_FALLIDOS` | `5` | Intentos de login antes del bloqueo temporal |
+| `BLOQUEO_MINUTOS` | `15` | Duración del bloqueo por intentos fallidos |
+| `EXPONER_ENLACE_RECUPERACION` | `true` en dev, `false` en producción | Devuelve el enlace en el JSON solo en entornos de prueba |
 
 ## 6. Reglas de negocio
 
@@ -219,10 +235,10 @@ ruff format --check .
 | Tipo | Cantidad | Archivo |
 |---|---|---|
 | Unitarias (dominio y contraseñas) | 7 | `tests/test_unit_reglas.py` |
-| Integración (auth, reservas, salas) | 27 | `tests/test_integracion_auth.py`, `tests/test_integracion_reservas.py` |
+| Integración (auth, reservas, salas y seguridad) | 34 | `tests/test_integracion_auth.py`, `tests/test_integracion_reservas.py`, `tests/test_seguridad.py` |
 | End-to-end | 3 | `tests/test_e2e.py` |
 
-Resultado actual: **37 pruebas aprobadas, 89 % de cobertura**.
+Resultado actual: **44 pruebas aprobadas, 90 % de cobertura**.
 El CI (`.github/workflows/ci.yml`) ejecuta linter, formato, pruebas con
 `--cov-fail-under=85` y build de la imagen Docker en cada push y PR.
 
@@ -254,6 +270,8 @@ tests_manual/               # Colecciones .http e informe de evidencias
 - [Diagrama de datos](docs/diagrama-datos.md)
 - [Diagrama de clases](docs/diagrama-clases.md)
 - [Matriz de retroalimentación](docs/retroalimentacion.md)
+- [Ajustes de seguridad 5.5 y 5.6](docs/tareas-seguridad-pauta.md)
+- [Revisión de exposición de secretos](docs/revision-secretos.md)
 - [Guion de defensa](docs/guia-defensa.md)
 - [Informe de pruebas de la Entrega III](tests_manual/informe_pruebas_entrega3.md)
 

@@ -38,9 +38,11 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+psycopg://reservas:reservas@db:5432/reservas
-      SECRET_KEY: ${SECRET_KEY:-clave-docker-grupo06-cambiar-en-produccion-32b}
+      SECRET_KEY: ${SECRET_KEY:-clave-de-desarrollo-grupo06-cambiar-en-produccion}
       ENTORNO: ${ENTORNO:-dev}
       EXPONER_ENLACE_RECUPERACION: ${EXPONER_ENLACE_RECUPERACION:-true}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      RECUPERACION_COOLDOWN_SEGUNDOS: ${RECUPERACION_COOLDOWN_SEGUNDOS:-120}
       BASE_URL: http://localhost:8000
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"

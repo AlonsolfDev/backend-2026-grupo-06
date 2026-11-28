@@ -9,8 +9,8 @@ Formato uniforme de error:
 import logging
 
 from fastapi import FastAPI, Request
-from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.domain.errores import (
@@ -21,6 +21,7 @@ from app.domain.errores import (
     RecursoNoEncontrado,
     ReglaNegocioError,
 )
+from app.infrastructure.config import CORS_ORIGINS
 from app.presentation.routers import (
     auth_router,
     equipamiento_router,
@@ -47,6 +48,16 @@ app = FastAPI(
     contact={"name": "Grupo 06 - Desarrollo de Backend ICINF1108"},
 )
 
+# CORS con orígenes explícitos: no se admite "*" cuando se envían credenciales.
+# Los orígenes se configuran con CORS_ORIGINS (separados por coma).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
+)
+
 app.include_router(auth_router.router)
 app.include_router(sala_router.router)
 app.include_router(usuario_router.router)
@@ -67,6 +78,23 @@ def error_response(code: str, message: str, details: list, status_code: int) -> 
     )
 
 
+def _detalles_validacion(exc: RequestValidationError) -> list[dict]:
+    """Resume los errores de Pydantic sin reenviar los valores del cliente.
+
+    `exc.errors()` incluye `input` y `ctx`; si el cuerpo trae una contraseña,
+    un token o un secreto, esos valores quedarían en la respuesta 422. Solo se
+    conservan la ubicación, el mensaje y el tipo de error.
+    """
+    return [
+        {
+            "loc": list(error.get("loc", [])),
+            "msg": str(error.get("msg", "")),
+            "type": str(error.get("type", "")),
+        }
+        for error in exc.errors()
+    ]
+
+
 @app.get("/", tags=["Estado"], summary="Estado del servicio")
 def estado_servicio():
     return {"servicio": "reservas-uct", "version": "1.0.0", "estado": "operativo"}
@@ -78,7 +106,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return error_response(
         code="VALIDATION_ERROR",
         message="Los datos enviados no cumplen el formato esperado.",
-        details=jsonable_encoder(exc.errors(), custom_encoder={Exception: str}),
+        details=_detalles_validacion(exc),
         status_code=422,
     )
 

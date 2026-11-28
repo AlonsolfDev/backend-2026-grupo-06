@@ -174,7 +174,7 @@ def seed() -> None:
         db.commit()
         print("Seeders ejecutados correctamente")
         print("Usuarios demo: admin@uct.cl / ana@uct.cl / luis@uct.cl")
-        print(f"Contraseña demo: {PASSWORD_DEMO}")
+        print("Credenciales demo: consultar la sección 'Usuarios de demostración' del README.")
     except Exception:
         db.rollback()
         raise

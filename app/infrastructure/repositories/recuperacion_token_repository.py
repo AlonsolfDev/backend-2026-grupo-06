@@ -36,6 +36,19 @@ class RecuperacionTokenRepository:
         )
         return _a_dominio(modelo) if modelo else None
 
+    def obtener_ultimo_por_usuario(self, usuario_id: int) -> RecuperacionToken | None:
+        """Devuelve la solicitud más reciente, usada o pendiente, de una cuenta."""
+        modelo = (
+            self.db.query(RecuperacionTokenModel)
+            .filter(RecuperacionTokenModel.usuario_id == usuario_id)
+            .order_by(
+                RecuperacionTokenModel.creado_en.desc(),
+                RecuperacionTokenModel.id.desc(),
+            )
+            .first()
+        )
+        return _a_dominio(modelo) if modelo else None
+
     def marcar_usado(self, jti: str) -> bool:
         modelo = (
             self.db.query(RecuperacionTokenModel)
