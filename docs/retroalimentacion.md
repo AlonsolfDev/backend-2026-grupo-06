@@ -6,10 +6,28 @@ lo contiene y la evidencia que permite verificarlo.
 
 Los hashes citados corresponden a los commits de la rama
 `fix/correcciones-entrega3`, integrada a `main` mediante el pull request de la
-Entrega III.
+Entrega III. El estado resuelto/parcial/pendiente de cada observación se
+resume en `docs/matriz-estado-entrega3.md` y se replica en la columna **Estado**
+de las tablas siguientes.
 
 **Puntaje de referencia:** 18/30 en código (nota 4,6) y 13/24 en defensa (nota 4,3).
 Las observaciones se agrupan en 5 causas técnicas y 4 de evidencia.
+
+---
+
+## Resumen de estado (O1–O7)
+
+| ID | Observación | Estado | Evidencia |
+|---|---|---|---|
+| O1 | 18 operaciones, solo 8 funcionan | resuelta | `1b4c902`, captura `03-reservas-200.png` |
+| O2 | Archivo de diagrama vacío | resuelta | `2ea6f14`, `25359ed` |
+| O3 | Regla de equipamiento dañado no invocada | resuelta | `a761e10`, prueba `test_equipamiento_danado_impide_confirmar` |
+| O4 | `TypeError` como 500 en texto plano | resuelta | `f4f92d1`, `e4e47ea` |
+| O5 | Evidencia desactualizada | parcial | `a152ad4`; faltan 7 capturas de 12 |
+| O6 | Más de 5 endpoints incumplen contrato | resuelta | `b7ae618`, `d1e9ac8` |
+| O7 | Autenticación, recuperación, contenedores, CI y pruebas | parcial | `a97b693`, `e4e47ea`, `74d9e73`, `d14ab49`; falta despliegue en Kubero |
+
+Fuente: `docs/matriz-estado-entrega3.md`. No hay observaciones pendientes.
 
 ---
 
@@ -22,6 +40,8 @@ Las observaciones se agrupan en 5 causas técnicas y 4 de evidencia.
 modelos ORM sí enviaban esos campos, por lo que el constructor del `dataclass`
 lanzaba `TypeError` y los 10 endpoints de reservas y equipamiento respondían
 **500 en texto plano**.
+
+**Estado:** resuelta.
 
 | Cambio | Archivo | Commit | Evidencia |
 |---|---|---|---|
@@ -39,6 +59,8 @@ de negocio en total (32 contando `GET /` de salud).
 
 `docs/diagrama-datos.md` pesaba **0 bytes**.
 
+**Estado:** resuelta.
+
 | Cambio | Archivo | Commit |
 |---|---|---|
 | Diagrama entidad-relación en Mermaid, con cardinalidades, índices y migraciones | `docs/diagrama-datos.md` | `2ea6f14` (`docs(datos): diagrama de datos en Mermaid`) |
@@ -52,6 +74,8 @@ Ambos diagramas se renderizan directamente en GitHub y en la defensa.
 
 La función `validar_equipamiento_disponible` existía en
 `app/domain/reglas_negocio.py` pero **no se llamaba desde ningún caso de uso**.
+
+**Estado:** resuelta.
 
 | Cambio | Archivo | Commit | Evidencia |
 |---|---|---|---|
@@ -73,6 +97,8 @@ Se pasó de **2 reglas invocadas** a **5 reglas de negocio activas**:
 `app/main.py` manejaba errores de dominio y `ValueError`, pero no tenía un
 respaldo para excepciones inesperadas.
 
+**Estado:** resuelta.
+
 | Cambio | Archivo | Commit | Evidencia |
 |---|---|---|---|
 | Manejador global de `Exception` con log y respuesta JSON uniforme | `app/main.py` | `f4f92d1` (`fix(errores): manejador global de excepciones y errores 401/403`) | `INTERNAL_ERROR` documentado en README y OpenAPI |
@@ -86,6 +112,9 @@ en el log del servidor (nunca en la respuesta).
 
 ### O5. «La evidencia no está actualizada con el código entregado»
 
+**Estado:** parcial — el informe y la suite automatizada están actualizados,
+pero faltan 7 de las 12 capturas de la pauta.
+
 | Cambio | Archivo | Commit |
 |---|---|---|
 | Nuevo informe de pruebas con resultados de la versión actual | `tests_manual/informe_pruebas_entrega3.md` | `a152ad4` (`docs(pruebas): informe de evidencias y colecciones http`) |
@@ -98,6 +127,8 @@ indica qué captura corresponde a cada caso y con qué comando se reproduce.
 ---
 
 ### O6. «Más de 5 endpoints incumplen el contrato REST/DTO/OpenAPI»
+
+**Estado:** resuelta.
 
 | Cambio | Archivo | Commit |
 |---|---|---|
@@ -113,6 +144,9 @@ códigos de error por endpoint.
 ### O7. «Falta autenticación, recuperación de contraseña, contenedores, CI y pruebas»
 
 Estos puntos no estaban en la pauta de la Entrega I–II, pero sí en la III.
+
+**Estado:** parcial — autenticación, recuperación, contenedores, CI y pruebas
+implementados; falta el despliegue efectivo en Kubero.
 
 | Requisito | Implementación | Commit | Evidencia |
 |---|---|---|---|
