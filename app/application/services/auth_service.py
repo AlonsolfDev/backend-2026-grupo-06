@@ -32,6 +32,7 @@ from app.infrastructure.config import (
     BLOQUEO_MINUTOS,
     EXPONER_ENLACE_RECUPERACION,
     MAX_INTENTOS_FALLIDOS,
+    RECUPERACION_COOLDOWN_SEGUNDOS,
 )
 from app.infrastructure.repositories.recuperacion_token_repository import (
     RecuperacionTokenRepository,
@@ -183,11 +184,28 @@ def solicitar_recuperacion(db: Session, correo: str) -> dict:
     if usuario is None or not usuario.activo:
         return {"mensaje": mensaje, "enlace_recuperacion": None}
 
+    repo_tokens = RecuperacionTokenRepository(db)
+
+    # Límite de solicitudes repetidas: dentro de la ventana se responde igual
+    # (202 genérico) pero no se genera ni envía otro enlace. No se incrementan
+    # intentos fallidos ni se bloquea la cuenta.
+    ultimo = repo_tokens.obtener_ultimo_por_usuario(usuario.id)
+    ahora = _ahora_sin_zona()
+    if ultimo is not None and ultimo.creado_en is not None:
+        transcurrido = (ahora - ultimo.creado_en).total_seconds()
+        if transcurrido < RECUPERACION_COOLDOWN_SEGUNDOS:
+            logger.info(
+                "Solicitud de recuperación limitada para usuario %s (faltan %s s).",
+                usuario.id,
+                int(RECUPERACION_COOLDOWN_SEGUNDOS - transcurrido),
+            )
+            return {"mensaje": mensaje, "enlace_recuperacion": None}
+
     # Un nuevo enlace invalida los pendientes anteriores.
-    RecuperacionTokenRepository(db).invalidar_pendientes(usuario.id)
+    repo_tokens.invalidar_pendientes(usuario.id)
 
     token, jti, expira = crear_token_recuperacion(usuario)
-    RecuperacionTokenRepository(db).crear(usuario.id, jti, expira)
+    repo_tokens.crear(usuario.id, jti, expira)
 
     enlace = f"{BASE_URL}/auth/recuperacion/restablecer?token={token}"
     enviar_correo_recuperacion(usuario.correo, enlace)
