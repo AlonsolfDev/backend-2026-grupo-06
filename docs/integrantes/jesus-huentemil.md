@@ -10,3 +10,8 @@
 - Endpoints de salas con equipamiento, disponibilidad y equipamientos.
 - Cinco reglas de negocio activas y autorización por dueño o administrador.
 - Manejo global de excepciones con respuestas JSON uniformes (401/403/500).
+
+## CÃ³mo lo explico en la defensa
+
+- Recorrido del login: DTO, router, `auth_service`, repositorio y seguridad.
+- Diferencia entre 401 (sin token o token invÃ¡lido) y 403 (usuario vÃ¡lido sin permiso).
