@@ -15,3 +15,8 @@
 
 - Causa del 500: `Reserva` sin `proposito`/`num_asistentes` y `Equipamiento` sin `descripcion`.
 - CÃ³mo quedÃ³ el modelo de datos y la migraciÃ³n `a1b2c3d4e5f6`.
+
+## ParticipaciÃ³n en el repositorio
+
+- Rama de trabajo: `docs/retroalimentacion-estado`.
+- Pull request integrado con este cambio: `docs/pr-diego-oficial`.
